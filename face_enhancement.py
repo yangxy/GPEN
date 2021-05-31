@@ -106,9 +106,9 @@ if __name__=='__main__':
         cv2.imwrite(os.path.join(outdir, ''.join(file.split('.')[:-1])+'_COMP.jpg'), np.hstack((im, img)))
         cv2.imwrite(os.path.join(outdir, ''.join(file.split('.')[:-1])+'_GPEN.jpg'), img)
         
-        for n, (ef, of) in enumerate(zip(enhanced_faces, orig_faces)):
+        for m, (ef, of) in enumerate(zip(enhanced_faces, orig_faces)):
             of = cv2.resize(of, ef.shape[:2])
-            cv2.imwrite(os.path.join(outdir, ''.join(file.split('.')[:-1])+'_face%02d'%n+'.jpg'), np.hstack((of, ef)))
+            cv2.imwrite(os.path.join(outdir, ''.join(file.split('.')[:-1])+'_face%02d'%m+'.jpg'), np.hstack((of, ef)))
         
         if n%10==0: print(n, file)
         
