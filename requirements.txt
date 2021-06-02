@@ -4,3 +4,4 @@ scikit-image
 pillow
 torch
 torchvision
+ninja
