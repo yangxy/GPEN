@@ -15,12 +15,13 @@ from align_faces import warp_and_crop_face, get_reference_facial_points
 from skimage import transform as tf
 
 class FaceEnhancement(object):
-    def __init__(self, base_dir='./', size=1024, model=None, channel_multiplier=2):
+    def __init__(self, base_dir='./', size=512, model=None, channel_multiplier=2):
         self.facedetector = RetinaFaceDetection(base_dir)
         self.facegan = FaceGAN(base_dir, size, model, channel_multiplier)
         self.size = size
         self.threshold = 0.9
 
+        # the mask for pasting restored faces back
         self.mask = np.zeros((512, 512), np.float32)
         cv2.rectangle(self.mask, (26, 26), (486, 486), (1, 1, 1), -1, cv2.LINE_AA)
         self.mask = cv2.GaussianBlur(self.mask, (101, 101), 11)
@@ -39,11 +40,6 @@ class FaceEnhancement(object):
                 (self.size, self.size), inner_padding_factor, outer_padding, default_square)
 
     def process(self, img):
-        if len(img.shape)==2 or img.shape[2]==1:
-            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        if img.shape[2]==4:
-            img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
-
         facebs, landms = self.facedetector.detect(img)
         
         orig_faces, enhanced_faces = [], []
@@ -59,7 +55,7 @@ class FaceEnhancement(object):
 
             of, tfm_inv = warp_and_crop_face(img, facial5points, reference_pts=self.reference_5pts, crop_size=(self.size, self.size))
             
-            # enhance face
+            # enhance the face
             ef = self.facegan.process(of)
             
             orig_faces.append(of)
@@ -69,7 +65,7 @@ class FaceEnhancement(object):
             tmp_mask = cv2.resize(tmp_mask, ef.shape[:2])
             tmp_mask = cv2.warpAffine(tmp_mask, tfm_inv, (width, height), flags=3)
 
-            if min(fh, fw)<100: # gaussian filter for small face
+            if min(fh, fw)<100: # gaussian filter for small faces
                 ef = cv2.filter2D(ef, -1, self.kernel)
             
             tmp_img = cv2.warpAffine(ef, tfm_inv, (width, height), flags=3)
@@ -91,24 +87,24 @@ if __name__=='__main__':
     outdir = 'examples/outs'
     os.makedirs(outdir, exist_ok=True)
 
-    faceenhance = FaceEnhancement(size=model['size'], model=model['name'], channel_multiplier=2)
+    faceenhancer = FaceEnhancement(size=model['size'], model=model['name'], channel_multiplier=2)
 
     files = sorted(glob.glob(os.path.join(indir, '*.*g')))
-    for n, filename in enumerate(files[:]):
-        file = os.path.basename(filename)
+    for n, file in enumerate(files[:]):
+        filename = os.path.basename(file)
         
-        im = cv2.imread(filename)
+        im = cv2.imread(file, cv2.IMREAD_COLOR) # BGR
         if not isinstance(im, np.ndarray): print(filename, 'error'); continue
         im = cv2.resize(im, (0,0), fx=2, fy=2)
 
-        img, orig_faces, enhanced_faces = faceenhance.process(im)
+        img, orig_faces, enhanced_faces = faceenhancer.process(im)
         
-        cv2.imwrite(os.path.join(outdir, ''.join(file.split('.')[:-1])+'_COMP.jpg'), np.hstack((im, img)))
-        cv2.imwrite(os.path.join(outdir, ''.join(file.split('.')[:-1])+'_GPEN.jpg'), img)
+        cv2.imwrite(os.path.join(outdir, '.'.join(filename.split('.')[:-1])+'_COMP.jpg'), np.hstack((im, img)))
+        cv2.imwrite(os.path.join(outdir, '.'.join(filename.split('.')[:-1])+'_GPEN.jpg'), img)
         
         for m, (ef, of) in enumerate(zip(enhanced_faces, orig_faces)):
             of = cv2.resize(of, ef.shape[:2])
-            cv2.imwrite(os.path.join(outdir, ''.join(file.split('.')[:-1])+'_face%02d'%m+'.jpg'), np.hstack((of, ef)))
+            cv2.imwrite(os.path.join(outdir, '.'.join(filename.split('.')[:-1])+'_face%02d'%m+'.jpg'), np.hstack((of, ef)))
         
-        if n%10==0: print(n, file)
+        if n%10==0: print(n, filename)
         

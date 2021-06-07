@@ -14,7 +14,7 @@ _[Department of Computing, The Hong Kong Polytechnic University](http://www.comp
 ## Usage
 
 ![python](https://img.shields.io/badge/python-v3.7.4-green.svg?style=plastic)
-![pytorch](https://img.shields.io/badge/pytorch-v1.7.1-green.svg?style=plastic)
+![pytorch](https://img.shields.io/badge/pytorch-v1.7.0-green.svg?style=plastic)
 ![cuda](https://img.shields.io/badge/cuda-v10.2.89-green.svg?style=plastic)
 ![driver](https://img.shields.io/badge/driver-v460.73.01-green.svg?style=plastic)
 ![gcc](https://img.shields.io/badge/gcc-v7.5.0-green.svg?style=plastic)
@@ -26,11 +26,16 @@ cd GPEN
 ```
 - Download RetinaFace model and our pre-trained model (not our best model due to commercial issues) and put them into ``weights/``.
 
-    [RetinaFace-R50](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/RetinaFace-R50.pth) | [GPEN-512](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/GPEN-512.pth)
+    [RetinaFace-R50](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/RetinaFace-R50.pth) | [GPEN-512](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/GPEN-512.pth) | [GPEN-1024-Color](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/GPEN-1024-Color.pth)
 
-- Restore faces:
+- Restore face images:
 ```bash
 python face_enhancement.py
+```
+
+- Colorize aligned faces:
+```bash
+python face_colorization.py
 ```
 
 ## Main idea
