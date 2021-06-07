@@ -6,10 +6,16 @@
 _[DAMO Academy, Alibaba Group](https://damo.alibaba.com), Hangzhou, China_  
 _[Department of Computing, The Hong Kong Polytechnic University](http://www.comp.polyu.edu.hk), Hong Kong, China_
 
+#### Face Restoration
+
 <img src="figs/real_00.png" width="390px"/> <img src="figs/real_01.png" width="390px"/>
 <img src="figs/real_02.png" width="390px"/> <img src="figs/real_03.png" width="390px"/>
 
 <img src="figs/Solvay_conference_1927_comp.jpg" width="784px"/>
+
+#### Face Colorization
+
+<img src="figs/gray_00.jpg" width="390px"/> <img src="figs/gray_01.jpg" width="390px"/>
 
 ## Usage
 
