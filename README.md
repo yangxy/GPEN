@@ -17,6 +17,9 @@ _<sup>2</sup>[Department of Computing, The Hong Kong Polytechnic University](htt
 
 <img src="figs/gray_00.jpg" width="390px"/> <img src="figs/gray_01.jpg" width="390px"/>
 
+## News
+(2021-07-06) The training code will be released soon. Stay tuned.
+
 ## Usage
 
 ![python](https://img.shields.io/badge/python-v3.7.4-green.svg?style=plastic)
