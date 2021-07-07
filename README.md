@@ -20,6 +20,19 @@ _<sup>2</sup>[Department of Computing, The Hong Kong Polytechnic University](htt
 ## News
 (2021-07-06) The training code will be released soon. Stay tuned.
 
+## Installation
+
+1. Clone this repository:
+```bash
+git clone https://github.com/yangxy/GPEN.git
+cd GPEN
+```
+2. install requirements:
+```
+pip install -r requirements.txt
+```
+*Note:* This will install about 6 GB of packages to your system.
+
 ## Usage
 
 ![python](https://img.shields.io/badge/python-v3.7.4-green.svg?style=plastic)
@@ -28,11 +41,7 @@ _<sup>2</sup>[Department of Computing, The Hong Kong Polytechnic University](htt
 ![driver](https://img.shields.io/badge/driver-v460.73.01-green.svg?style=plastic)
 ![gcc](https://img.shields.io/badge/gcc-v7.5.0-green.svg?style=plastic)
 
-- Clone this repository:
-```bash
-git clone https://github.com/yangxy/GPEN.git
-cd GPEN
-```
+
 - Download RetinaFace model and our pre-trained model (not our best model due to commercial issues) and put them into ``weights/``.
 
     [RetinaFace-R50](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/RetinaFace-R50.pth) | [GPEN-512](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/GPEN-512.pth) | [GPEN-1024-Color](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/GPEN-1024-Color.pth)
