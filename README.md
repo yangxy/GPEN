@@ -15,7 +15,15 @@ _<sup>2</sup>[Department of Computing, The Hong Kong Polytechnic University](htt
 
 #### Face Colorization
 
-<img src="figs/gray_00.jpg" width="390px"/> <img src="figs/gray_01.jpg" width="390px"/>
+<img src="figs/colorization_00.jpg" width="390px"/> <img src="figs/colorization_01.jpg" width="390px"/>
+
+#### Face Inpainting
+
+<img src="figs/inpainting_00.jpg" width="390px"/> <img src="figs/inpainting_01.jpg" width="390px"/>
+
+#### Conditional Image Synthesis (Seg2Face)
+
+<img src="figs/seg2face_00.jpg" width="390px"/> <img src="figs/seg2face_01.jpg" width="390px"/>
 
 ## News
 (2021-07-06) The training code will be released soon. Stay tuned.
@@ -35,16 +43,26 @@ cd GPEN
 ```
 - Download RetinaFace model and our pre-trained model (not our best model due to commercial issues) and put them into ``weights/``.
 
-    [RetinaFace-R50](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/RetinaFace-R50.pth) | [GPEN-512](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/GPEN-512.pth) | [GPEN-1024-Color](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/GPEN-1024-Color.pth)
+    [RetinaFace-R50](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/RetinaFace-R50.pth) | [GPEN-BFR-512](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/GPEN-BFR-512.pth) | [GPEN-Colorization-1024](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/GPEN-Colorization-1024.pth) | [GPEN-Inpainting-1024](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/GPEN-Inpainting-1024.pth) | [GPEN-Seg2face-512](https://public-vigen-video.oss-cn-shanghai.aliyuncs.com/robin/models/GPEN-Seg2face-512.pth)
 
 - Restore face images:
 ```bash
 python face_enhancement.py
 ```
 
-- Colorize aligned faces:
+- Colorize faces:
 ```bash
 python face_colorization.py
+```
+
+- Complete faces:
+```bash
+python face_inpainting.py
+```
+
+- Synthesize faces:
+```bash
+python segmentation2face.py
 ```
 
 ## Main idea

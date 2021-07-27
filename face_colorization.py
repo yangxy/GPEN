@@ -24,10 +24,10 @@ class FaceColorization(object):
         
 
 if __name__=='__main__':
-    model = {'name':'GPEN-1024-Color', 'size':1024}
+    model = {'name':'GPEN-Colorization-1024', 'size':1024}
     
     indir = 'examples/grays'
-    outdir = 'examples/couts'
+    outdir = 'examples/outs-colorization'
     os.makedirs(outdir, exist_ok=True)
 
     facecolorizer = FaceColorization(size=model['size'], model=model['name'], channel_multiplier=2)

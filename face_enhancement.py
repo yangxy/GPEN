@@ -81,10 +81,10 @@ class FaceEnhancement(object):
         
 
 if __name__=='__main__':
-    model = {'name':'GPEN-512', 'size':512}
+    model = {'name':'GPEN-BFR-512', 'size':512}
     
     indir = 'examples/imgs'
-    outdir = 'examples/outs'
+    outdir = 'examples/outs-BFR'
     os.makedirs(outdir, exist_ok=True)
 
     faceenhancer = FaceEnhancement(size=model['size'], model=model['name'], channel_multiplier=2)
