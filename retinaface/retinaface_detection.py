@@ -106,10 +106,12 @@ class RetinaFaceDetection(object):
         landms = landms[:keep_top_k, :]
 
         # sort faces(delete)
+        '''
         fscores = [det[4] for det in dets]
         sorted_idx = sorted(range(len(fscores)), key=lambda k:fscores[k], reverse=False) # sort index
         tmp = [landms[idx] for idx in sorted_idx]
         landms = np.asarray(tmp)
+        '''
         
         landms = landms.reshape((-1, 5, 2))
         landms = landms.transpose((0, 2, 1))
