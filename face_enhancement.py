@@ -15,9 +15,9 @@ from align_faces import warp_and_crop_face, get_reference_facial_points
 from skimage import transform as tf
 
 class FaceEnhancement(object):
-    def __init__(self, base_dir='./', size=512, model=None, channel_multiplier=2):
+    def __init__(self, base_dir='./', size=512, model=None, channel_multiplier=2, narrow=1):
         self.facedetector = RetinaFaceDetection(base_dir)
-        self.facegan = FaceGAN(base_dir, size, model, channel_multiplier)
+        self.facegan = FaceGAN(base_dir, size, model, channel_multiplier, narrow)
         self.size = size
         self.threshold = 0.9
 
@@ -81,13 +81,13 @@ class FaceEnhancement(object):
         
 
 if __name__=='__main__':
-    model = {'name':'GPEN-BFR-512', 'size':512}
+    model = {'name':'GPEN-BFR-512', 'size':512, 'channel_multiplier':2, 'narrow':1}
     
     indir = 'examples/imgs'
     outdir = 'examples/outs-BFR'
     os.makedirs(outdir, exist_ok=True)
 
-    faceenhancer = FaceEnhancement(size=model['size'], model=model['name'], channel_multiplier=2)
+    faceenhancer = FaceEnhancement(size=model['size'], model=model['name'], channel_multiplier=model['channel_multiplier'], narrow=model['narrow'])
 
     files = sorted(glob.glob(os.path.join(indir, '*.*g')))
     for n, file in enumerate(files[:]):

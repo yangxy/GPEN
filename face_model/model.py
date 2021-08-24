@@ -6,6 +6,7 @@ import math
 import random
 import functools
 import operator
+import itertools
 
 import torch
 from torch import nn
@@ -13,9 +14,6 @@ from torch.nn import functional as F
 from torch.autograd import Function
 
 from op import FusedLeakyReLU, fused_leaky_relu, upfirdn2d
-
-isconcat = True
-sss = 2 if isconcat else 1
 
 class PixelNorm(nn.Module):
     def __init__(self):
@@ -282,24 +280,21 @@ class ModulatedConv2d(nn.Module):
 
 
 class NoiseInjection(nn.Module):
-    def __init__(self):
+    def __init__(self, isconcat=True):
         super().__init__()
 
+        self.isconcat = isconcat
         self.weight = nn.Parameter(torch.zeros(1))
 
     def forward(self, image, noise=None):
-        
-        if noise is not None:
-            #print(image.shape, noise.shape)
-            if isconcat: return torch.cat((image, self.weight * noise), dim=1) # concat
-            return image + self.weight * noise
-
         if noise is None:
             batch, _, height, width = image.shape
             noise = image.new_empty(batch, 1, height, width).normal_()
 
-        return image + self.weight * noise
-        #return torch.cat((image, self.weight * noise), dim=1)
+        if self.isconcat:
+            return torch.cat((image, self.weight * noise), dim=1)
+        else:
+            return image + self.weight * noise
 
 
 class ConstantInput(nn.Module):
@@ -325,6 +320,7 @@ class StyledConv(nn.Module):
         upsample=False,
         blur_kernel=[1, 3, 3, 1],
         demodulate=True,
+        isconcat=True
     ):
         super().__init__()
 
@@ -338,10 +334,11 @@ class StyledConv(nn.Module):
             demodulate=demodulate,
         )
 
-        self.noise = NoiseInjection()
+        self.noise = NoiseInjection(isconcat)
         #self.bias = nn.Parameter(torch.zeros(1, out_channel, 1, 1))
         #self.activate = ScaledLeakyReLU(0.2)
-        self.activate = FusedLeakyReLU(out_channel*sss)
+        feat_multiplier = 2 if isconcat else 1
+        self.activate = FusedLeakyReLU(out_channel*feat_multiplier)
 
     def forward(self, input, style, noise=None):
         out = self.conv(input, style)
@@ -382,12 +379,15 @@ class Generator(nn.Module):
         channel_multiplier=2,
         blur_kernel=[1, 3, 3, 1],
         lr_mlp=0.01,
+        isconcat=True,
+        narrow=1
     ):
         super().__init__()
 
         self.size = size
         self.n_mlp = n_mlp
         self.style_dim = style_dim
+        self.feat_multiplier = 2 if isconcat else 1
 
         layers = [PixelNorm()]
 
@@ -401,22 +401,22 @@ class Generator(nn.Module):
         self.style = nn.Sequential(*layers)
 
         self.channels = {
-            4: 512,
-            8: 512,
-            16: 512,
-            32: 512,
-            64: 256 * channel_multiplier,
-            128: 128 * channel_multiplier,
-            256: 64 * channel_multiplier,
-            512: 32 * channel_multiplier,
-            1024: 16 * channel_multiplier,
+            4: int(512 * narrow),
+            8: int(512 * narrow),
+            16: int(512 * narrow),
+            32: int(512 * narrow),
+            64: int(256 * channel_multiplier * narrow),
+            128: int(128 * channel_multiplier * narrow),
+            256: int(64 * channel_multiplier * narrow),
+            512: int(32 * channel_multiplier * narrow),
+            1024: int(16 * channel_multiplier * narrow)
         }
 
         self.input = ConstantInput(self.channels[4])
         self.conv1 = StyledConv(
-            self.channels[4], self.channels[4], 3, style_dim, blur_kernel=blur_kernel
+            self.channels[4], self.channels[4], 3, style_dim, blur_kernel=blur_kernel, isconcat=isconcat
         )
-        self.to_rgb1 = ToRGB(self.channels[4]*sss, style_dim, upsample=False)
+        self.to_rgb1 = ToRGB(self.channels[4]*self.feat_multiplier, style_dim, upsample=False)
 
         self.log_size = int(math.log(size, 2))
 
@@ -431,22 +431,23 @@ class Generator(nn.Module):
 
             self.convs.append(
                 StyledConv(
-                    in_channel*sss,
+                    in_channel*self.feat_multiplier,
                     out_channel,
                     3,
                     style_dim,
                     upsample=True,
                     blur_kernel=blur_kernel,
+                    isconcat=isconcat
                 )
             )
 
             self.convs.append(
                 StyledConv(
-                    out_channel*sss, out_channel, 3, style_dim, blur_kernel=blur_kernel
+                    out_channel*self.feat_multiplier, out_channel, 3, style_dim, blur_kernel=blur_kernel, isconcat=isconcat
                 )
             )
 
-            self.to_rgbs.append(ToRGB(out_channel*sss, style_dim))
+            self.to_rgbs.append(ToRGB(out_channel*self.feat_multiplier, style_dim))
 
             in_channel = out_channel
 
@@ -496,7 +497,6 @@ class Generator(nn.Module):
             for i in range(self.n_mlp + 1):
                 size = 2 ** (i+2)
                 noise.append(torch.randn(batch, self.channels[size], size, size, device=styles[0].device))
-                #print(self.channels[size], size)
             
         if truncation < 1:
             style_t = []
@@ -528,20 +528,14 @@ class Generator(nn.Module):
         skip = self.to_rgb1(out, latent[:, 1])
 
         i = 1
-        noise_i = 1
-
-        outs = []
-        for conv1, conv2, to_rgb in zip(
-            self.convs[::2], self.convs[1::2], self.to_rgbs
+        for conv1, conv2, noise1, noise2, to_rgb in zip(
+            self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
         ):
-            #print(out.shape, noise[(noise_i)//2].shape, noise[(noise_i + 1)//2].shape)
-            out = conv1(out, latent[:, i], noise=noise[(noise_i + 1)//2]) ### 1 for 2
-            out = conv2(out, latent[:, i + 1], noise=noise[(noise_i + 2)//2]) ### 1 for 2
+            out = conv1(out, latent[:, i], noise=noise1)
+            out = conv2(out, latent[:, i + 1], noise=noise2)
             skip = to_rgb(out, latent[:, i + 2], skip)
-            #outs.append(skip.clone())
 
             i += 2
-            noise_i += 2
 
         image = skip
 
@@ -629,22 +623,24 @@ class FullGenerator(nn.Module):
         channel_multiplier=2,
         blur_kernel=[1, 3, 3, 1],
         lr_mlp=0.01,
+        isconcat=True,
+        narrow=1
     ):
         super().__init__()
         channels = {
-            4: 512,
-            8: 512,
-            16: 512,
-            32: 512,
-            64: 256 * channel_multiplier,
-            128: 128 * channel_multiplier,
-            256: 64 * channel_multiplier,
-            512: 32 * channel_multiplier,
-            1024: 16 * channel_multiplier,
+            4: int(512 * narrow),
+            8: int(512 * narrow),
+            16: int(512 * narrow),
+            32: int(512 * narrow),
+            64: int(256 * channel_multiplier * narrow),
+            128: int(128 * channel_multiplier * narrow),
+            256: int(64 * channel_multiplier * narrow),
+            512: int(32 * channel_multiplier * narrow),
+            1024: int(16 * channel_multiplier * narrow)
         }
 
         self.log_size = int(math.log(size, 2))
-        self.generator = Generator(size, style_dim, n_mlp, channel_multiplier=channel_multiplier, blur_kernel=blur_kernel, lr_mlp=lr_mlp)
+        self.generator = Generator(size, style_dim, n_mlp, channel_multiplier=channel_multiplier, blur_kernel=blur_kernel, lr_mlp=lr_mlp, isconcat=isconcat, narrow=narrow)
         
         conv = [ConvLayer(3, channels[size], 1)]
         self.ecd0 = nn.Sequential(*conv)
@@ -676,7 +672,8 @@ class FullGenerator(nn.Module):
         inputs = inputs.view(inputs.shape[0], -1)
         outs = self.final_linear(inputs)
         #print(outs.shape)
-        outs = self.generator([outs], return_latents, inject_index, truncation, truncation_latent, input_is_latent, noise=noise[::-1])
+        noise = list(itertools.chain.from_iterable(itertools.repeat(x, 2) for x in noise))[::-1]
+        outs = self.generator([outs], return_latents, inject_index, truncation, truncation_latent, input_is_latent, noise=noise[1:])
         return outs
 
 
