@@ -81,7 +81,8 @@ class FaceEnhancement(object):
         
 
 if __name__=='__main__':
-    model = {'name':'GPEN-BFR-512', 'size':512, 'channel_multiplier':2, 'narrow':1}
+    #model = {'name':'GPEN-BFR-512', 'size':512, 'channel_multiplier':2, 'narrow':1}
+    model = {'name':'GPEN-BFR-256', 'size':256, 'channel_multiplier':1, 'narrow':0.5}
     
     indir = 'examples/imgs'
     outdir = 'examples/outs-BFR'
