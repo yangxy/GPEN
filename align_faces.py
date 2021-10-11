@@ -3,6 +3,9 @@
 Created on Mon Apr 24 15:43:29 2017
 @author: zhaoy
 """
+"""
+@Modified by yangxy (yangtao9009@gmail.com)
+"""
 import cv2
 import numpy as np
 from skimage import transform as trans

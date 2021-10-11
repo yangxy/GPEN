@@ -12,8 +12,8 @@ import __init_paths
 from face_model.face_gan import FaceGAN
 
 class Segmentation2Face(object):
-    def __init__(self, base_dir='./', size=1024, model=None, channel_multiplier=2, is_norm=True):
-        self.facegan = FaceGAN(base_dir, size, model, channel_multiplier, is_norm)
+    def __init__(self, base_dir='./', size=1024, model=None, channel_multiplier=2, narrow=1, is_norm=True):
+        self.facegan = FaceGAN(base_dir, size, model, channel_multiplier, narrow, is_norm)
 
     # make sure the face image is well aligned. Please refer to face_enhancement.py
     def process(self, segf):
