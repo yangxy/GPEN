@@ -28,6 +28,8 @@ _<sup>2</sup>[Department of Computing, The Hong Kong Polytechnic University](htt
 ## News
 (2021-07-06) The training code will be released soon. Stay tuned.
 
+(2021-10-11) The Colab demo for GPEN is available now <a href="https://colab.research.google.com/drive/1fPUsJCpQipp2Z5B5GbEXqpBGsMp-nvjm?usp=sharing"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="google colab logo"></a>. 
+
 ## Usage
 
 ![python](https://img.shields.io/badge/python-v3.7.4-green.svg?style=plastic)
