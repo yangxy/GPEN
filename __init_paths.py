@@ -16,3 +16,6 @@ add_path(path)
 
 path = osp.join(this_dir, 'face_model')
 add_path(path)
+
+path = osp.join(this_dir, 'sr_model')
+add_path(path)
