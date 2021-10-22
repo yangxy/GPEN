@@ -30,7 +30,7 @@ _<sup>2</sup>[Department of Computing, The Hong Kong Polytechnic University](htt
 
 (2021-10-11) The Colab demo for GPEN is available now <a href="https://colab.research.google.com/drive/1fPUsJCpQipp2Z5B5GbEXqpBGsMp-nvjm?usp=sharing"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="google colab logo"></a>.
 
-(2021-10-22) GPEN can now work with SR methods. A SR model trained by myself is released. Replace it with your own model is necessary.
+(2021-10-22) GPEN can now work with SR methods. A SR model trained by myself is provided. Replace it with your own model if necessary.
 
 ## Usage
 
