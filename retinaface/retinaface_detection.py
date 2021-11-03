@@ -26,6 +26,8 @@ class RetinaFaceDetection(object):
         self.load_model()
         self.net = self.net.cuda()
 
+        self.mean = torch.tensor([[[[104]], [[117]], [[123]]]]).cuda()
+
     def check_keys(self, pretrained_state_dict):
         ckpt_keys = set(pretrained_state_dict.keys())
         model_keys = set(self.net.state_dict().keys())
@@ -57,6 +59,10 @@ class RetinaFaceDetection(object):
         img = np.float32(img_raw)
 
         im_height, im_width = img.shape[:2]
+        ss = 1000.0/max(im_height, im_width)
+        img = cv2.resize(img, (0,0), fx=ss, fy=ss)
+        im_height, im_width = img.shape[:2]
+
         scale = torch.Tensor([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
         img -= (104, 117, 123)
         img = img.transpose(2, 0, 1)
@@ -106,12 +112,67 @@ class RetinaFaceDetection(object):
         landms = landms[:keep_top_k, :]
 
         # sort faces(delete)
-        '''
         fscores = [det[4] for det in dets]
         sorted_idx = sorted(range(len(fscores)), key=lambda k:fscores[k], reverse=False) # sort index
         tmp = [landms[idx] for idx in sorted_idx]
         landms = np.asarray(tmp)
-        '''
+        
+        landms = landms.reshape((-1, 5, 2))
+        landms = landms.transpose((0, 2, 1))
+        landms = landms.reshape(-1, 10, )
+        return dets/ss, landms/ss
+
+    def detect_tensor(self, img, resize=1, confidence_threshold=0.9, nms_threshold=0.4, top_k=5000, keep_top_k=750, save_image=False):
+        im_height, im_width = img.shape[-2:]
+        scale = torch.Tensor([im_width, im_height, im_width, im_height]).cuda()
+        img -= self.mean
+
+        loc, conf, landms = self.net(img)  # forward pass
+
+        priorbox = PriorBox(self.cfg, image_size=(im_height, im_width))
+        priors = priorbox.forward()
+        priors = priors.cuda()
+        prior_data = priors.data
+        boxes = decode(loc.data.squeeze(0), prior_data, self.cfg['variance'])
+        boxes = boxes * scale / resize
+        boxes = boxes.cpu().numpy()
+        scores = conf.squeeze(0).data.cpu().numpy()[:, 1]
+        landms = decode_landm(landms.data.squeeze(0), prior_data, self.cfg['variance'])
+        scale1 = torch.Tensor([img.shape[3], img.shape[2], img.shape[3], img.shape[2],
+                               img.shape[3], img.shape[2], img.shape[3], img.shape[2],
+                               img.shape[3], img.shape[2]])
+        scale1 = scale1.cuda()
+        landms = landms * scale1 / resize
+        landms = landms.cpu().numpy()
+
+        # ignore low scores
+        inds = np.where(scores > confidence_threshold)[0]
+        boxes = boxes[inds]
+        landms = landms[inds]
+        scores = scores[inds]
+
+        # keep top-K before NMS
+        order = scores.argsort()[::-1][:top_k]
+        boxes = boxes[order]
+        landms = landms[order]
+        scores = scores[order]
+
+        # do NMS
+        dets = np.hstack((boxes, scores[:, np.newaxis])).astype(np.float32, copy=False)
+        keep = py_cpu_nms(dets, nms_threshold)
+        # keep = nms(dets, nms_threshold,force_cpu=args.cpu)
+        dets = dets[keep, :]
+        landms = landms[keep]
+
+        # keep top-K faster NMS
+        dets = dets[:keep_top_k, :]
+        landms = landms[:keep_top_k, :]
+
+        # sort faces(delete)
+        fscores = [det[4] for det in dets]
+        sorted_idx = sorted(range(len(fscores)), key=lambda k:fscores[k], reverse=False) # sort index
+        tmp = [landms[idx] for idx in sorted_idx]
+        landms = np.asarray(tmp)
         
         landms = landms.reshape((-1, 5, 2))
         landms = landms.transpose((0, 2, 1))
