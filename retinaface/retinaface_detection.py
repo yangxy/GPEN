@@ -13,6 +13,7 @@ import cv2
 from facemodels.retinaface import RetinaFace
 from utils.box_utils import decode, decode_landm
 import time
+import torch.nn.functional as F
 
 
 class RetinaFaceDetection(object):
@@ -112,10 +113,12 @@ class RetinaFaceDetection(object):
         landms = landms[:keep_top_k, :]
 
         # sort faces(delete)
+        '''
         fscores = [det[4] for det in dets]
         sorted_idx = sorted(range(len(fscores)), key=lambda k:fscores[k], reverse=False) # sort index
         tmp = [landms[idx] for idx in sorted_idx]
         landms = np.asarray(tmp)
+        '''
         
         landms = landms.reshape((-1, 5, 2))
         landms = landms.transpose((0, 2, 1))
@@ -123,6 +126,9 @@ class RetinaFaceDetection(object):
         return dets/ss, landms/ss
 
     def detect_tensor(self, img, resize=1, confidence_threshold=0.9, nms_threshold=0.4, top_k=5000, keep_top_k=750, save_image=False):
+        im_height, im_width = img.shape[-2:]
+        ss = 1000/max(im_height, im_width)
+        img = F.interpolate(img, scale_factor=ss)
         im_height, im_width = img.shape[-2:]
         scale = torch.Tensor([im_width, im_height, im_width, im_height]).cuda()
         img -= self.mean
@@ -169,12 +175,14 @@ class RetinaFaceDetection(object):
         landms = landms[:keep_top_k, :]
 
         # sort faces(delete)
+        '''
         fscores = [det[4] for det in dets]
         sorted_idx = sorted(range(len(fscores)), key=lambda k:fscores[k], reverse=False) # sort index
         tmp = [landms[idx] for idx in sorted_idx]
         landms = np.asarray(tmp)
+        '''
         
         landms = landms.reshape((-1, 5, 2))
         landms = landms.transpose((0, 2, 1))
         landms = landms.reshape(-1, 10, )
-        return dets, landms
+        return dets/ss, landms/ss
