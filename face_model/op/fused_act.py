@@ -1,19 +1,21 @@
 import os
+import platform
 
 import torch
 from torch import nn
+import torch.nn.functional as F
 from torch.autograd import Function
 from torch.utils.cpp_extension import load, _import_module_from_library
 
-
-module_path = os.path.dirname(__file__)
-fused = load(
-    'fused',
-    sources=[
-        os.path.join(module_path, 'fused_bias_act.cpp'),
-        os.path.join(module_path, 'fused_bias_act_kernel.cu'),
-    ],
-)
+if platform.system() == 'Linux':
+    module_path = os.path.dirname(__file__)
+    fused = load(
+        'fused',
+        sources=[
+            os.path.join(module_path, 'fused_bias_act.cpp'),
+            os.path.join(module_path, 'fused_bias_act_kernel.cu'),
+        ],
+    )
 
 #fused = _import_module_from_library('fused', '/tmp/torch_extensions/fused', True)
 
@@ -85,4 +87,7 @@ class FusedLeakyReLU(nn.Module):
 
 
 def fused_leaky_relu(input, bias, negative_slope=0.2, scale=2 ** 0.5):
-    return FusedLeakyReLUFunction.apply(input, bias, negative_slope, scale)
+    if platform.system() == 'Linux':
+        return FusedLeakyReLUFunction.apply(input, bias, negative_slope, scale)
+    else:
+        return scale * F.leaky_relu(input + bias.view((1, -1)+(1,)*(len(input.shape)-2)), negative_slope=negative_slope)
