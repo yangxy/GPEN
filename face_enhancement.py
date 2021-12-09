@@ -11,7 +11,7 @@ import numpy as np
 from PIL import Image
 import __init_paths
 from face_detect.retinaface_detection import RetinaFaceDetection
-from face_parse.faceParse import FaceParse
+from face_parse.face_parsing import FaceParse
 from face_model.face_gan import FaceGAN
 from sr_model.real_esrnet import RealESRNet
 from align_faces import warp_and_crop_face, get_reference_facial_points
