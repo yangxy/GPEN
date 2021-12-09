@@ -61,9 +61,12 @@ class RetinaFaceDetection(object):
         img = np.float32(img_raw)
 
         im_height, im_width = img.shape[:2]
-        ss = 1000.0/max(im_height, im_width)
-        img = cv2.resize(img, (0,0), fx=ss, fy=ss)
-        im_height, im_width = img.shape[:2]
+        ss = 1.0
+        # tricky
+        if max(im_height, im_width) > 1500:
+            ss = 1000.0/max(im_height, im_width)
+            img = cv2.resize(img, (0,0), fx=ss, fy=ss)
+            im_height, im_width = img.shape[:2]
 
         scale = torch.Tensor([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
         img -= (104, 117, 123)
