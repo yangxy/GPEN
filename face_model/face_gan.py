@@ -10,7 +10,7 @@ import numpy as np
 from torch import nn
 import torch.nn.functional as F
 from torchvision import transforms, utils
-from model import FullGenerator
+from gpen_model import FullGenerator
 
 class FaceGAN(object):
     def __init__(self, base_dir='./', size=512, model=None, channel_multiplier=2, narrow=1, is_norm=True, device='cuda'):

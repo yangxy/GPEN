@@ -10,17 +10,18 @@ import argparse
 import numpy as np
 from PIL import Image
 import __init_paths
-from retinaface.retinaface_detection import RetinaFaceDetection
+from face_detect.retinaface_detection import RetinaFaceDetection
+from face_parse.faceParse import FaceParse
 from face_model.face_gan import FaceGAN
 from sr_model.real_esrnet import RealESRNet
 from align_faces import warp_and_crop_face, get_reference_facial_points
-from skimage import transform as tf
 
 class FaceEnhancement(object):
     def __init__(self, base_dir='./', size=512, model=None, use_sr=True, sr_model=None, channel_multiplier=2, narrow=1, device='cuda'):
         self.facedetector = RetinaFaceDetection(base_dir, device)
         self.facegan = FaceGAN(base_dir, size, model, channel_multiplier, narrow, device=device)
         self.srmodel =  RealESRNet(base_dir, sr_model, device=device)
+        self.faceparser = FaceParse(base_dir, device=device)
         self.use_sr = use_sr
         self.size = size
         self.threshold = 0.9
@@ -42,6 +43,13 @@ class FaceEnhancement(object):
         outer_padding = (0, 0)
         self.reference_5pts = get_reference_facial_points(
                 (self.size, self.size), inner_padding_factor, outer_padding, default_square)
+
+    def mask_postprocess(self, mask, thres=20):
+        mask[:thres, :] = 0; mask[-thres:, :] = 0
+        mask[:, :thres] = 0; mask[:, -thres:] = 0
+        mask = cv2.GaussianBlur(mask, (101, 101), 11)
+        mask = cv2.GaussianBlur(mask, (101, 101), 11)
+        return mask.astype(np.float32)
 
     def process(self, img):
         if self.use_sr:
@@ -70,7 +78,8 @@ class FaceEnhancement(object):
             orig_faces.append(of)
             enhanced_faces.append(ef)
             
-            tmp_mask = self.mask
+            #tmp_mask = self.mask
+            tmp_mask = self.mask_postprocess(self.faceparser.process(ef)[0]/255.)
             tmp_mask = cv2.resize(tmp_mask, ef.shape[:2])
             tmp_mask = cv2.warpAffine(tmp_mask, tfm_inv, (width, height), flags=3)
 

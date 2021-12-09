@@ -11,7 +11,10 @@ def add_path(path):
 
 this_dir = osp.dirname(__file__)
 
-path = osp.join(this_dir, 'retinaface')
+path = osp.join(this_dir, 'face_detect')
+add_path(path)
+
+path = osp.join(this_dir, 'face_parse')
 add_path(path)
 
 path = osp.join(this_dir, 'face_model')
