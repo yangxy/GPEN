@@ -7,7 +7,8 @@ import torch.nn.functional as F
 from torch.autograd import Function
 from torch.utils.cpp_extension import load, _import_module_from_library
 
-if platform.system() == 'Linux':
+# if running GPEN without cuda, please comment line 11-19
+if platform.system() == 'Linux' and torch.cuda.is_available():
     module_path = os.path.dirname(__file__)
     fused = load(
         'fused',
@@ -16,6 +17,7 @@ if platform.system() == 'Linux':
             os.path.join(module_path, 'fused_bias_act_kernel.cu'),
         ],
     )
+
 
 #fused = _import_module_from_library('fused', '/tmp/torch_extensions/fused', True)
 
@@ -75,19 +77,20 @@ class FusedLeakyReLUFunction(Function):
 
 
 class FusedLeakyReLU(nn.Module):
-    def __init__(self, channel, negative_slope=0.2, scale=2 ** 0.5):
+    def __init__(self, channel, negative_slope=0.2, scale=2 ** 0.5, device='cpu'):
         super().__init__()
 
         self.bias = nn.Parameter(torch.zeros(channel))
         self.negative_slope = negative_slope
         self.scale = scale
+        self.device = device
 
     def forward(self, input):
-        return fused_leaky_relu(input, self.bias, self.negative_slope, self.scale)
+        return fused_leaky_relu(input, self.bias, self.negative_slope, self.scale, self.device)
 
 
-def fused_leaky_relu(input, bias, negative_slope=0.2, scale=2 ** 0.5):
-    if platform.system() == 'Linux':
+def fused_leaky_relu(input, bias, negative_slope=0.2, scale=2 ** 0.5, device='cpu'):
+    if platform.system() == 'Linux' and torch.cuda.is_available() and device != 'cpu':
         return FusedLeakyReLUFunction.apply(input, bias, negative_slope, scale)
     else:
         return scale * F.leaky_relu(input + bias.view((1, -1)+(1,)*(len(input.shape)-2)), negative_slope=negative_slope)

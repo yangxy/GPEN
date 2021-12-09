@@ -5,9 +5,10 @@ from rrdbnet_arch import RRDBNet
 from torch.nn import functional as F
 
 class RealESRNet(object):
-    def __init__(self, base_dir='./', model=None, scale=2):
+    def __init__(self, base_dir='./', model=None, scale=2, device='cuda'):
         self.base_dir = base_dir
         self.scale = scale
+        self.device = device
         self.load_srmodel(base_dir, model)
 
     def load_srmodel(self, base_dir, model):
@@ -16,14 +17,15 @@ class RealESRNet(object):
             loadnet = torch.load(os.path.join(self.base_dir, 'weights', 'rrdb_realesrnet_psnr.pth'))
         else:
             loadnet = torch.load(os.path.join(self.base_dir, 'weights', model+'.pth'))
+        #print(loadnet['params_ema'].keys)
         self.srmodel.load_state_dict(loadnet['params_ema'], strict=True)
         self.srmodel.eval()
-        self.srmodel = self.srmodel.cuda()
+        self.srmodel = self.srmodel.to(self.device)
 
     def process(self, img):
         img = img.astype(np.float32) / 255.
         img = torch.from_numpy(np.transpose(img[:, :, [2, 1, 0]], (2, 0, 1))).float()
-        img = img.unsqueeze(0).cuda()
+        img = img.unsqueeze(0).to(self.device)
 
         if self.scale == 2:
             mod_scale = 2

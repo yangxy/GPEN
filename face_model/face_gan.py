@@ -13,17 +13,19 @@ from torchvision import transforms, utils
 from model import FullGenerator
 
 class FaceGAN(object):
-    def __init__(self, base_dir='./', size=512, model=None, channel_multiplier=2, narrow=1, is_norm=True):
+    def __init__(self, base_dir='./', size=512, model=None, channel_multiplier=2, narrow=1, is_norm=True, device='cuda'):
         self.mfile = os.path.join(base_dir, 'weights', model+'.pth')
         self.n_mlp = 8
+        self.device = device
         self.is_norm = is_norm
         self.resolution = size
         self.load_model(channel_multiplier, narrow)
 
     def load_model(self, channel_multiplier=2, narrow=1):
-        self.model = FullGenerator(self.resolution, 512, self.n_mlp, channel_multiplier, narrow=narrow).cuda()
-        pretrained_dict = torch.load(self.mfile)
+        self.model = FullGenerator(self.resolution, 512, self.n_mlp, channel_multiplier, narrow=narrow, device=self.device)
+        pretrained_dict = torch.load(self.mfile, map_location=torch.device('cpu'))
         self.model.load_state_dict(pretrained_dict)
+        self.model.to(self.device)
         self.model.eval()
 
     def process(self, img):
@@ -38,7 +40,7 @@ class FaceGAN(object):
         return out
 
     def img2tensor(self, img):
-        img_t = torch.from_numpy(img).cuda()/255.
+        img_t = torch.from_numpy(img).to(self.device)/255.
         if self.is_norm:
             img_t = (img_t - 0.5) / 0.5
         img_t = img_t.permute(2, 0, 1).unsqueeze(0).flip(1) # BGR->RGB

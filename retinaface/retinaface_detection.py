@@ -17,17 +17,17 @@ import torch.nn.functional as F
 
 
 class RetinaFaceDetection(object):
-    def __init__(self, base_dir, network='RetinaFace-R50'):
+    def __init__(self, base_dir, device='cuda', network='RetinaFace-R50'):
         torch.set_grad_enabled(False)
         cudnn.benchmark = True
         self.pretrained_path = os.path.join(base_dir, 'weights', network+'.pth')
-        self.device = torch.cuda.current_device()
+        self.device = device #torch.cuda.current_device()
         self.cfg = cfg_re50
         self.net = RetinaFace(cfg=self.cfg, phase='test')
         self.load_model()
-        self.net = self.net.cuda()
+        self.net = self.net.to(device)
 
-        self.mean = torch.tensor([[[[104]], [[117]], [[123]]]]).cuda()
+        self.mean = torch.tensor([[[[104]], [[117]], [[123]]]]).to(device)
 
     def check_keys(self, pretrained_state_dict):
         ckpt_keys = set(pretrained_state_dict.keys())
@@ -44,10 +44,11 @@ class RetinaFaceDetection(object):
         return {f(key): value for key, value in state_dict.items()}
 
     def load_model(self, load_to_cpu=False):
-        if load_to_cpu:
-            pretrained_dict = torch.load(self.pretrained_path, map_location=lambda storage, loc: storage)
-        else:
-            pretrained_dict = torch.load(self.pretrained_path, map_location=lambda storage, loc: storage.cuda())
+        #if load_to_cpu:
+        #    pretrained_dict = torch.load(self.pretrained_path, map_location=lambda storage, loc: storage)
+        #else:
+        #    pretrained_dict = torch.load(self.pretrained_path, map_location=lambda storage, loc: storage.cuda())
+        pretrained_dict = torch.load(self.pretrained_path, map_location=torch.device('cpu'))
         if "state_dict" in pretrained_dict.keys():
             pretrained_dict = self.remove_prefix(pretrained_dict['state_dict'], 'module.')
         else:
@@ -68,14 +69,14 @@ class RetinaFaceDetection(object):
         img -= (104, 117, 123)
         img = img.transpose(2, 0, 1)
         img = torch.from_numpy(img).unsqueeze(0)
-        img = img.cuda()
-        scale = scale.cuda()
+        img = img.to(self.device)
+        scale = scale.to(self.device)
 
         loc, conf, landms = self.net(img)  # forward pass
 
         priorbox = PriorBox(self.cfg, image_size=(im_height, im_width))
         priors = priorbox.forward()
-        priors = priors.cuda()
+        priors = priors.to(self.device)
         prior_data = priors.data
         boxes = decode(loc.data.squeeze(0), prior_data, self.cfg['variance'])
         boxes = boxes * scale / resize
@@ -85,7 +86,7 @@ class RetinaFaceDetection(object):
         scale1 = torch.Tensor([img.shape[3], img.shape[2], img.shape[3], img.shape[2],
                                img.shape[3], img.shape[2], img.shape[3], img.shape[2],
                                img.shape[3], img.shape[2]])
-        scale1 = scale1.cuda()
+        scale1 = scale1.to(self.device)
         landms = landms * scale1 / resize
         landms = landms.cpu().numpy()
 
@@ -130,14 +131,14 @@ class RetinaFaceDetection(object):
         ss = 1000/max(im_height, im_width)
         img = F.interpolate(img, scale_factor=ss)
         im_height, im_width = img.shape[-2:]
-        scale = torch.Tensor([im_width, im_height, im_width, im_height]).cuda()
+        scale = torch.Tensor([im_width, im_height, im_width, im_height]).to(self.device)
         img -= self.mean
 
         loc, conf, landms = self.net(img)  # forward pass
 
         priorbox = PriorBox(self.cfg, image_size=(im_height, im_width))
         priors = priorbox.forward()
-        priors = priors.cuda()
+        priors = priors.to(self.device)
         prior_data = priors.data
         boxes = decode(loc.data.squeeze(0), prior_data, self.cfg['variance'])
         boxes = boxes * scale / resize
@@ -147,7 +148,7 @@ class RetinaFaceDetection(object):
         scale1 = torch.Tensor([img.shape[3], img.shape[2], img.shape[3], img.shape[2],
                                img.shape[3], img.shape[2], img.shape[3], img.shape[2],
                                img.shape[3], img.shape[2]])
-        scale1 = scale1.cuda()
+        scale1 = scale1.to(self.device)
         landms = landms * scale1 / resize
         landms = landms.cpu().numpy()
 

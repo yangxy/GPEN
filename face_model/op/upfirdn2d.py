@@ -6,7 +6,8 @@ import torch.nn.functional as F
 from torch.autograd import Function
 from torch.utils.cpp_extension import load, _import_module_from_library
 
-if platform.system() == 'Linux':
+# if running GPEN without cuda, please comment line 10-18
+if platform.system() == 'Linux' and torch.cuda.is_available():
     module_path = os.path.dirname(__file__)
     upfirdn2d_op = load(
         'upfirdn2d',
@@ -15,6 +16,7 @@ if platform.system() == 'Linux':
             os.path.join(module_path, 'upfirdn2d_kernel.cu'),
         ],
     )
+
 
 #upfirdn2d_op = _import_module_from_library('upfirdn2d', '/tmp/torch_extensions/upfirdn2d', True)
 
@@ -144,8 +146,8 @@ class UpFirDn2d(Function):
         return grad_input, None, None, None, None
 
 
-def upfirdn2d(input, kernel, up=1, down=1, pad=(0, 0)):
-    if platform.system() == 'Linux':
+def upfirdn2d(input, kernel, up=1, down=1, pad=(0, 0), device='cpu'):
+    if platform.system() == 'Linux' and torch.cuda.is_available() and device != 'cpu':
         out = UpFirDn2d.apply(
             input, kernel, (up, up), (down, down), (pad[0], pad[1], pad[0], pad[1])
         )

@@ -35,7 +35,7 @@ def make_kernel(k):
 
 
 class Upsample(nn.Module):
-    def __init__(self, kernel, factor=2):
+    def __init__(self, kernel, factor=2, device='cpu'):
         super().__init__()
 
         self.factor = factor
@@ -48,15 +48,16 @@ class Upsample(nn.Module):
         pad1 = p // 2
 
         self.pad = (pad0, pad1)
+        self.device = device
 
     def forward(self, input):
-        out = upfirdn2d(input, self.kernel, up=self.factor, down=1, pad=self.pad)
+        out = upfirdn2d(input, self.kernel, up=self.factor, down=1, pad=self.pad, device=self.device)
 
         return out
 
 
 class Downsample(nn.Module):
-    def __init__(self, kernel, factor=2):
+    def __init__(self, kernel, factor=2, device='cpu'):
         super().__init__()
 
         self.factor = factor
@@ -69,15 +70,16 @@ class Downsample(nn.Module):
         pad1 = p // 2
 
         self.pad = (pad0, pad1)
+        self.device = device
 
     def forward(self, input):
-        out = upfirdn2d(input, self.kernel, up=1, down=self.factor, pad=self.pad)
+        out = upfirdn2d(input, self.kernel, up=1, down=self.factor, pad=self.pad, device=self.device)
 
         return out
 
 
 class Blur(nn.Module):
-    def __init__(self, kernel, pad, upsample_factor=1):
+    def __init__(self, kernel, pad, upsample_factor=1, device='cpu'):
         super().__init__()
 
         kernel = make_kernel(kernel)
@@ -88,9 +90,10 @@ class Blur(nn.Module):
         self.register_buffer('kernel', kernel)
 
         self.pad = pad
+        self.device = device
 
     def forward(self, input):
-        out = upfirdn2d(input, self.kernel, pad=self.pad)
+        out = upfirdn2d(input, self.kernel, pad=self.pad, device=self.device)
 
         return out
 
@@ -135,7 +138,7 @@ class EqualConv2d(nn.Module):
 
 class EqualLinear(nn.Module):
     def __init__(
-        self, in_dim, out_dim, bias=True, bias_init=0, lr_mul=1, activation=None
+        self, in_dim, out_dim, bias=True, bias_init=0, lr_mul=1, activation=None, device='cpu'
     ):
         super().__init__()
 
@@ -148,6 +151,7 @@ class EqualLinear(nn.Module):
             self.bias = None
 
         self.activation = activation
+        self.device = device
 
         self.scale = (1 / math.sqrt(in_dim)) * lr_mul
         self.lr_mul = lr_mul
@@ -155,7 +159,7 @@ class EqualLinear(nn.Module):
     def forward(self, input):
         if self.activation:
             out = F.linear(input, self.weight * self.scale)
-            out = fused_leaky_relu(out, self.bias * self.lr_mul)
+            out = fused_leaky_relu(out, self.bias * self.lr_mul, device=self.device)
 
         else:
             out = F.linear(input, self.weight * self.scale, bias=self.bias * self.lr_mul)
@@ -191,6 +195,7 @@ class ModulatedConv2d(nn.Module):
         upsample=False,
         downsample=False,
         blur_kernel=[1, 3, 3, 1],
+        device='cpu'
     ):
         super().__init__()
 
@@ -207,7 +212,7 @@ class ModulatedConv2d(nn.Module):
             pad0 = (p + 1) // 2 + factor - 1
             pad1 = p // 2 + 1
 
-            self.blur = Blur(blur_kernel, pad=(pad0, pad1), upsample_factor=factor)
+            self.blur = Blur(blur_kernel, pad=(pad0, pad1), upsample_factor=factor, device=device)
 
         if downsample:
             factor = 2
@@ -215,7 +220,7 @@ class ModulatedConv2d(nn.Module):
             pad0 = (p + 1) // 2
             pad1 = p // 2
 
-            self.blur = Blur(blur_kernel, pad=(pad0, pad1))
+            self.blur = Blur(blur_kernel, pad=(pad0, pad1), device=device)
 
         fan_in = in_channel * kernel_size ** 2
         self.scale = 1 / math.sqrt(fan_in)
@@ -320,7 +325,8 @@ class StyledConv(nn.Module):
         upsample=False,
         blur_kernel=[1, 3, 3, 1],
         demodulate=True,
-        isconcat=True
+        isconcat=True,
+        device='cpu'
     ):
         super().__init__()
 
@@ -332,13 +338,14 @@ class StyledConv(nn.Module):
             upsample=upsample,
             blur_kernel=blur_kernel,
             demodulate=demodulate,
+            device=device
         )
 
         self.noise = NoiseInjection(isconcat)
         #self.bias = nn.Parameter(torch.zeros(1, out_channel, 1, 1))
         #self.activate = ScaledLeakyReLU(0.2)
         feat_multiplier = 2 if isconcat else 1
-        self.activate = FusedLeakyReLU(out_channel*feat_multiplier)
+        self.activate = FusedLeakyReLU(out_channel*feat_multiplier, device=device)
 
     def forward(self, input, style, noise=None):
         out = self.conv(input, style)
@@ -350,13 +357,13 @@ class StyledConv(nn.Module):
 
 
 class ToRGB(nn.Module):
-    def __init__(self, in_channel, style_dim, upsample=True, blur_kernel=[1, 3, 3, 1]):
+    def __init__(self, in_channel, style_dim, upsample=True, blur_kernel=[1, 3, 3, 1], device='cpu'):
         super().__init__()
 
         if upsample:
-            self.upsample = Upsample(blur_kernel)
+            self.upsample = Upsample(blur_kernel, device=device)
 
-        self.conv = ModulatedConv2d(in_channel, 3, 1, style_dim, demodulate=False)
+        self.conv = ModulatedConv2d(in_channel, 3, 1, style_dim, demodulate=False, device=device)
         self.bias = nn.Parameter(torch.zeros(1, 3, 1, 1))
 
     def forward(self, input, style, skip=None):
@@ -380,7 +387,8 @@ class Generator(nn.Module):
         blur_kernel=[1, 3, 3, 1],
         lr_mlp=0.01,
         isconcat=True,
-        narrow=1
+        narrow=1,
+        device='cpu'
     ):
         super().__init__()
 
@@ -394,7 +402,7 @@ class Generator(nn.Module):
         for i in range(n_mlp):
             layers.append(
                 EqualLinear(
-                    style_dim, style_dim, lr_mul=lr_mlp, activation='fused_lrelu'
+                    style_dim, style_dim, lr_mul=lr_mlp, activation='fused_lrelu', device=device
                 )
             )
 
@@ -414,9 +422,9 @@ class Generator(nn.Module):
 
         self.input = ConstantInput(self.channels[4])
         self.conv1 = StyledConv(
-            self.channels[4], self.channels[4], 3, style_dim, blur_kernel=blur_kernel, isconcat=isconcat
+            self.channels[4], self.channels[4], 3, style_dim, blur_kernel=blur_kernel, isconcat=isconcat, device=device
         )
-        self.to_rgb1 = ToRGB(self.channels[4]*self.feat_multiplier, style_dim, upsample=False)
+        self.to_rgb1 = ToRGB(self.channels[4]*self.feat_multiplier, style_dim, upsample=False, device=device)
 
         self.log_size = int(math.log(size, 2))
 
@@ -437,17 +445,18 @@ class Generator(nn.Module):
                     style_dim,
                     upsample=True,
                     blur_kernel=blur_kernel,
-                    isconcat=isconcat
+                    isconcat=isconcat,
+                    device=device
                 )
             )
 
             self.convs.append(
                 StyledConv(
-                    out_channel*self.feat_multiplier, out_channel, 3, style_dim, blur_kernel=blur_kernel, isconcat=isconcat
+                    out_channel*self.feat_multiplier, out_channel, 3, style_dim, blur_kernel=blur_kernel, isconcat=isconcat, device=device
                 )
             )
 
-            self.to_rgbs.append(ToRGB(out_channel*self.feat_multiplier, style_dim))
+            self.to_rgbs.append(ToRGB(out_channel*self.feat_multiplier, style_dim, device=device))
 
             in_channel = out_channel
 
@@ -555,6 +564,7 @@ class ConvLayer(nn.Sequential):
         blur_kernel=[1, 3, 3, 1],
         bias=True,
         activate=True,
+        device='cpu'
     ):
         layers = []
 
@@ -564,7 +574,7 @@ class ConvLayer(nn.Sequential):
             pad0 = (p + 1) // 2
             pad1 = p // 2
 
-            layers.append(Blur(blur_kernel, pad=(pad0, pad1)))
+            layers.append(Blur(blur_kernel, pad=(pad0, pad1), device=device))
 
             stride = 2
             self.padding = 0
@@ -586,7 +596,7 @@ class ConvLayer(nn.Sequential):
 
         if activate:
             if bias:
-                layers.append(FusedLeakyReLU(out_channel))
+                layers.append(FusedLeakyReLU(out_channel, device=device))
 
             else:
                 layers.append(ScaledLeakyReLU(0.2))
@@ -595,11 +605,11 @@ class ConvLayer(nn.Sequential):
 
 
 class ResBlock(nn.Module):
-    def __init__(self, in_channel, out_channel, blur_kernel=[1, 3, 3, 1]):
+    def __init__(self, in_channel, out_channel, blur_kernel=[1, 3, 3, 1], device='cpu'):
         super().__init__()
 
-        self.conv1 = ConvLayer(in_channel, in_channel, 3)
-        self.conv2 = ConvLayer(in_channel, out_channel, 3, downsample=True)
+        self.conv1 = ConvLayer(in_channel, in_channel, 3, device=device)
+        self.conv2 = ConvLayer(in_channel, out_channel, 3, downsample=True, device=device)
 
         self.skip = ConvLayer(
             in_channel, out_channel, 1, downsample=True, activate=False, bias=False
@@ -624,7 +634,8 @@ class FullGenerator(nn.Module):
         blur_kernel=[1, 3, 3, 1],
         lr_mlp=0.01,
         isconcat=True,
-        narrow=1
+        narrow=1,
+        device='cpu'
     ):
         super().__init__()
         channels = {
@@ -640,9 +651,9 @@ class FullGenerator(nn.Module):
         }
 
         self.log_size = int(math.log(size, 2))
-        self.generator = Generator(size, style_dim, n_mlp, channel_multiplier=channel_multiplier, blur_kernel=blur_kernel, lr_mlp=lr_mlp, isconcat=isconcat, narrow=narrow)
+        self.generator = Generator(size, style_dim, n_mlp, channel_multiplier=channel_multiplier, blur_kernel=blur_kernel, lr_mlp=lr_mlp, isconcat=isconcat, narrow=narrow, device=device)
         
-        conv = [ConvLayer(3, channels[size], 1)]
+        conv = [ConvLayer(3, channels[size], 1, device=device)]
         self.ecd0 = nn.Sequential(*conv)
         in_channel = channels[size]
 
@@ -650,10 +661,10 @@ class FullGenerator(nn.Module):
         for i in range(self.log_size, 2, -1):
             out_channel = channels[2 ** (i - 1)]
             #conv = [ResBlock(in_channel, out_channel, blur_kernel)]
-            conv = [ConvLayer(in_channel, out_channel, 3, downsample=True)] 
+            conv = [ConvLayer(in_channel, out_channel, 3, downsample=True, device=device)] 
             setattr(self, self.names[self.log_size-i+1], nn.Sequential(*conv))
             in_channel = out_channel
-        self.final_linear = nn.Sequential(EqualLinear(channels[4] * 4 * 4, style_dim, activation='fused_lrelu'))
+        self.final_linear = nn.Sequential(EqualLinear(channels[4] * 4 * 4, style_dim, activation='fused_lrelu', device=device))
 
     def forward(self,
         inputs,
@@ -677,7 +688,7 @@ class FullGenerator(nn.Module):
         return outs
 
 class Discriminator(nn.Module):
-    def __init__(self, size, channel_multiplier=2, blur_kernel=[1, 3, 3, 1], narrow=1):
+    def __init__(self, size, channel_multiplier=2, blur_kernel=[1, 3, 3, 1], narrow=1, device='cpu'):
         super().__init__()
 
         channels = {
@@ -692,7 +703,7 @@ class Discriminator(nn.Module):
             1024: int(16 * channel_multiplier * narrow)
         }
 
-        convs = [ConvLayer(3, channels[size], 1)]
+        convs = [ConvLayer(3, channels[size], 1, device=device)]
 
         log_size = int(math.log(size, 2))
 
@@ -701,7 +712,7 @@ class Discriminator(nn.Module):
         for i in range(log_size, 2, -1):
             out_channel = channels[2 ** (i - 1)]
 
-            convs.append(ResBlock(in_channel, out_channel, blur_kernel))
+            convs.append(ResBlock(in_channel, out_channel, blur_kernel, device=device))
 
             in_channel = out_channel
 
@@ -710,9 +721,9 @@ class Discriminator(nn.Module):
         self.stddev_group = 4
         self.stddev_feat = 1
 
-        self.final_conv = ConvLayer(in_channel + 1, channels[4], 3)
+        self.final_conv = ConvLayer(in_channel + 1, channels[4], 3, device=device)
         self.final_linear = nn.Sequential(
-            EqualLinear(channels[4] * 4 * 4, channels[4], activation='fused_lrelu'),
+            EqualLinear(channels[4] * 4 * 4, channels[4], activation='fused_lrelu', device=device),
             EqualLinear(channels[4], 1),
         )
 

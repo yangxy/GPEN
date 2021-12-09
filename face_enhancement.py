@@ -17,10 +17,10 @@ from align_faces import warp_and_crop_face, get_reference_facial_points
 from skimage import transform as tf
 
 class FaceEnhancement(object):
-    def __init__(self, base_dir='./', size=512, model=None, use_sr=True, sr_model=None, channel_multiplier=2, narrow=1):
-        self.facedetector = RetinaFaceDetection(base_dir)
-        self.facegan = FaceGAN(base_dir, size, model, channel_multiplier, narrow)
-        self.srmodel = RealESRNet(base_dir, sr_model)
+    def __init__(self, base_dir='./', size=512, model=None, use_sr=True, sr_model=None, channel_multiplier=2, narrow=1, device='cuda'):
+        self.facedetector = RetinaFaceDetection(base_dir, device)
+        self.facegan = FaceGAN(base_dir, size, model, channel_multiplier, narrow, device=device)
+        self.srmodel =  RealESRNet(base_dir, sr_model, device=device)
         self.use_sr = use_sr
         self.size = size
         self.threshold = 0.9
@@ -99,6 +99,7 @@ if __name__=='__main__':
     parser.add_argument('--channel_multiplier', type=int, default=2, help='channel multiplier of GPEN')
     parser.add_argument('--narrow', type=float, default=1, help='channel narrow scale')
     parser.add_argument('--use_sr', action='store_true', help='use sr or not')
+    parser.add_argument('--use_cuda', action='store_true', help='use cuda or not')
     parser.add_argument('--sr_model', type=str, default='rrdb_realesrnet_psnr', help='SR model')
     parser.add_argument('--sr_scale', type=int, default=2, help='SR scale')
     parser.add_argument('--indir', type=str, default='examples/imgs', help='input folder')
@@ -110,7 +111,7 @@ if __name__=='__main__':
     
     os.makedirs(args.outdir, exist_ok=True)
 
-    faceenhancer = FaceEnhancement(size=args.size, model=args.model, use_sr=args.use_sr, sr_model=args.sr_model, channel_multiplier=args.channel_multiplier, narrow=args.narrow)
+    faceenhancer = FaceEnhancement(size=args.size, model=args.model, use_sr=args.use_sr, sr_model=args.sr_model, channel_multiplier=args.channel_multiplier, narrow=args.narrow, device='cuda' if args.use_cuda else 'cpu')
 
     files = sorted(glob.glob(os.path.join(args.indir, '*.*g')))
     for n, file in enumerate(files[:]):
