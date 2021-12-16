@@ -22,3 +22,9 @@ add_path(path)
 
 path = osp.join(this_dir, 'sr_model')
 add_path(path)
+
+path = osp.join(this_dir, 'loss')
+add_path(path)
+
+path = osp.join(this_dir, 'data_loader')
+add_path(path)
