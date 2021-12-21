@@ -80,9 +80,10 @@ python segmentation2face.py
 
 - Train GPEN for BFR with 4 GPUs:
 ```bash
-CUDA_VISIBLE_DEVICES='0,1,2,3' python -m torch.distributed.launch --nproc_per_node=4 --master_port=4321 train_simple.py --size 512 --channel_multiplier 2 --narrow 1 --ckpt weights --sample results --batch 4 --path your_path_of_hq_faces
+CUDA_VISIBLE_DEVICES='0,1,2,3' python -m torch.distributed.launch --nproc_per_node=4 --master_port=4321 train_simple.py --size 1024 --channel_multiplier 2 --narrow 1 --ckpt weights --sample results --batch 2 --path your_path_of_croped+aligned_hq_faces (e.g., FFHQ)
 
 ```
+When testing your own model, set ``--key g_ema``.
 
 ## Main idea
 <img src="figs/architecture.png" width="784px"/> 

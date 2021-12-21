@@ -13,17 +13,19 @@ from torchvision import transforms, utils
 from gpen_model import FullGenerator
 
 class FaceGAN(object):
-    def __init__(self, base_dir='./', size=512, model=None, channel_multiplier=2, narrow=1, is_norm=True, device='cuda'):
+    def __init__(self, base_dir='./', size=512, model=None, channel_multiplier=2, narrow=1, key=None, is_norm=True, device='cuda'):
         self.mfile = os.path.join(base_dir, 'weights', model+'.pth')
         self.n_mlp = 8
         self.device = device
         self.is_norm = is_norm
         self.resolution = size
+        self.key = key
         self.load_model(channel_multiplier, narrow)
 
     def load_model(self, channel_multiplier=2, narrow=1):
         self.model = FullGenerator(self.resolution, 512, self.n_mlp, channel_multiplier, narrow=narrow, device=self.device)
         pretrained_dict = torch.load(self.mfile, map_location=torch.device('cpu'))
+        if self.key is not None: pretrained_dict = pretrained_dict[self.key]
         self.model.load_state_dict(pretrained_dict)
         self.model.to(self.device)
         self.model.eval()

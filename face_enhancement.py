@@ -17,9 +17,9 @@ from sr_model.real_esrnet import RealESRNet
 from align_faces import warp_and_crop_face, get_reference_facial_points
 
 class FaceEnhancement(object):
-    def __init__(self, base_dir='./', size=512, model=None, use_sr=True, sr_model=None, channel_multiplier=2, narrow=1, device='cuda'):
+    def __init__(self, base_dir='./', size=512, model=None, use_sr=True, sr_model=None, channel_multiplier=2, narrow=1, key=None, device='cuda'):
         self.facedetector = RetinaFaceDetection(base_dir, device)
-        self.facegan = FaceGAN(base_dir, size, model, channel_multiplier, narrow, device=device)
+        self.facegan = FaceGAN(base_dir, size, model, channel_multiplier, narrow, key, device=device)
         self.srmodel =  RealESRNet(base_dir, sr_model, device=device)
         self.faceparser = FaceParse(base_dir, device=device)
         self.use_sr = use_sr
@@ -104,6 +104,7 @@ class FaceEnhancement(object):
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='GPEN-BFR-512', help='GPEN model')
+    parser.add_argument('--key', type=str, default=None, help='key of GPEN model')
     parser.add_argument('--size', type=int, default=512, help='resolution of GPEN')
     parser.add_argument('--channel_multiplier', type=int, default=2, help='channel multiplier of GPEN')
     parser.add_argument('--narrow', type=float, default=1, help='channel narrow scale')
@@ -120,7 +121,7 @@ if __name__=='__main__':
     
     os.makedirs(args.outdir, exist_ok=True)
 
-    faceenhancer = FaceEnhancement(size=args.size, model=args.model, use_sr=args.use_sr, sr_model=args.sr_model, channel_multiplier=args.channel_multiplier, narrow=args.narrow, device='cuda' if args.use_cuda else 'cpu')
+    faceenhancer = FaceEnhancement(size=args.size, model=args.model, use_sr=args.use_sr, sr_model=args.sr_model, channel_multiplier=args.channel_multiplier, narrow=args.narrow, key=args.key, device='cuda' if args.use_cuda else 'cpu')
 
     files = sorted(glob.glob(os.path.join(args.indir, '*.*g')))
     for n, file in enumerate(files[:]):

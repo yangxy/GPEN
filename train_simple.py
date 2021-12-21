@@ -33,6 +33,9 @@ from distributed import (
     get_world_size,
 )
 
+import lpips
+
+
 def data_sampler(dataset, shuffle, distributed):
     if distributed:
         return data.distributed.DistributedSampler(dataset, shuffle=shuffle)
@@ -105,8 +108,32 @@ def g_path_regularize(fake_img, latents, mean_path_length, decay=0.01):
 
     return path_penalty, path_mean.detach(), path_lengths
 
+def validation(model, lpips_func, args, device):
+    lq_files = sorted(glob.glob(os.path.join(args.val_dir, 'lq', '*.*')))
+    hq_files = sorted(glob.glob(os.path.join(args.val_dir, 'hq', '*.*')))
 
-def train(args, loader, generator, discriminator, losses, g_optim, d_optim, g_ema, device):
+    assert len(lq_files) == len(hq_files)
+
+    dist_sum = 0
+    model.eval()
+    for lq_f, hq_f in zip(lq_files, hq_files):
+        img_lq = cv2.imread(lq_f, cv2.IMREAD_COLOR)
+        img_t = torch.from_numpy(img_lq).to(device).permute(2, 0, 1).unsqueeze(0)
+        img_t = (img_t/255.-0.5)/0.5
+        img_t = F.interpolate(img_t, (args.size, args.size))
+        img_t = torch.flip(img_t, [1])
+        
+        with torch.no_grad():
+            img_out, __ = model(img_t)
+        
+            img_hq = lpips.im2tensor(lpips.load_image(hq_f)).to(device)
+            img_hq = F.interpolate(img_hq, (args.size, args.size))
+            dist_sum += lpips_func.forward(img_out, img_hq)
+    
+    return dist_sum.data/len(lq_files)
+
+
+def train(args, loader, generator, discriminator, losses, g_optim, d_optim, g_ema, lpips_func, device):
     loader = sample_data(loader)
 
     pbar = range(0, args.iter)
@@ -237,7 +264,7 @@ def train(args, loader, generator, discriminator, losses, g_optim, d_optim, g_em
                 )
             )
             
-            if i % 10000 == 0:
+            if i % args.save_freq == 0:
                 with torch.no_grad():
                     g_ema.eval()
                     sample, _ = g_ema(degraded_img)
@@ -250,7 +277,10 @@ def train(args, loader, generator, discriminator, losses, g_optim, d_optim, g_em
                         range=(-1, 1),
                     )
 
-            if i and i % 10000 == 0:
+                lpips_value = validation(g_ema, lpips_func, args, device)
+                print(f'{i}/{args.iter}: lpips: {lpips_value.cpu().numpy()[0][0][0][0]}')
+
+            if i and i % args.save_freq == 0:
                 torch.save(
                     {
                         'g': g_module.state_dict(),
@@ -279,6 +309,7 @@ if __name__ == '__main__':
     parser.add_argument('--path_batch_shrink', type=int, default=2)
     parser.add_argument('--d_reg_every', type=int, default=16)
     parser.add_argument('--g_reg_every', type=int, default=4)
+    parser.add_argument('--save_freq', type=int, default=10000)
     parser.add_argument('--lr', type=float, default=0.002)
     parser.add_argument('--local_rank', type=int, default=0)
     parser.add_argument('--ckpt', type=str, default='ckpts')
@@ -332,9 +363,22 @@ if __name__ == '__main__':
         lr=args.lr * d_reg_ratio,
         betas=(0 ** d_reg_ratio, 0.99 ** d_reg_ratio),
     )
+
+    if args.pretrain is not None:
+        print('load model:', args.pretrain)
+        
+        ckpt = torch.load(args.pretrain)
+
+        generator.load_state_dict(ckpt['g'])
+        discriminator.load_state_dict(ckpt['d'])
+        g_ema.load_state_dict(ckpt['g_ema'])
+            
+        g_optim.load_state_dict(ckpt['g_optim'])
+        d_optim.load_state_dict(ckpt['d_optim'])
     
     smooth_l1_loss = torch.nn.SmoothL1Loss().to(device)
     id_loss = IDLoss(args.base_dir, device, ckpt_dict=None)
+    lpips_func = lpips.LPIPS(net='alex',version='0.1').to(device)
     
     if args.distributed:
         generator = nn.parallel.DistributedDataParallel(
@@ -366,5 +410,5 @@ if __name__ == '__main__':
         drop_last=True,
     )
 
-    train(args, loader, generator, discriminator, [smooth_l1_loss, id_loss], g_optim, d_optim, g_ema, device)
+    train(args, loader, generator, discriminator, [smooth_l1_loss, id_loss], g_optim, d_optim, g_ema, lpips_func, device)
    
