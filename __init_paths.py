@@ -23,8 +23,11 @@ add_path(path)
 path = osp.join(this_dir, 'sr_model')
 add_path(path)
 
-path = osp.join(this_dir, 'loss')
+path = osp.join(this_dir, 'training')
 add_path(path)
 
-path = osp.join(this_dir, 'data_loader')
+path = osp.join(this_dir, 'training/loss')
+add_path(path)
+
+path = osp.join(this_dir, 'training/data_loader')
 add_path(path)

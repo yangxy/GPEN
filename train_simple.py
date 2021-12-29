@@ -21,10 +21,10 @@ import torch.distributed as dist
 from torchvision import transforms, utils
 
 import __init_paths
-from data_loader.dataset_face import FaceDataset
+from training.data_loader.dataset_face import FaceDataset
 from face_model.gpen_model import FullGenerator, Discriminator
 
-from loss.id_loss import IDLoss
+from training.loss.id_loss import IDLoss
 from distributed import (
     get_rank,
     synchronize,
@@ -33,7 +33,7 @@ from distributed import (
     get_world_size,
 )
 
-import lpips
+from training import lpips
 
 
 def data_sampler(dataset, shuffle, distributed):
