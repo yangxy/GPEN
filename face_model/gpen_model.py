@@ -552,8 +552,7 @@ class Generator(nn.Module):
             return image, latent
 
         else:
-            #return image, None
-            return image
+            return image, None
 
 class ConvLayer(nn.Sequential):
     def __init__(
