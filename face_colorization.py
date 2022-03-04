@@ -12,8 +12,8 @@ import __init_paths
 from face_model.face_gan import FaceGAN
 
 class FaceColorization(object):
-    def __init__(self, base_dir='./', size=1024, model=None, channel_multiplier=2):
-        self.facegan = FaceGAN(base_dir, size, model, channel_multiplier)
+    def __init__(self, base_dir='./', in_size=1024, out_size=1024, model=None, channel_multiplier=2):
+        self.facegan = FaceGAN(base_dir, in_size, out_size, model, channel_multiplier)
 
     # make sure the face image is well aligned. Please refer to face_enhancement.py
     def process(self, gray):
@@ -24,13 +24,13 @@ class FaceColorization(object):
         
 
 if __name__=='__main__':
-    model = {'name':'GPEN-Colorization-1024', 'size':1024}
+    model = {'name':'GPEN-Colorization-1024', 'in_size':1024, 'out_size':1024}
     
     indir = 'examples/grays'
     outdir = 'examples/outs-colorization'
     os.makedirs(outdir, exist_ok=True)
 
-    facecolorizer = FaceColorization(size=model['size'], model=model['name'], channel_multiplier=2)
+    facecolorizer = FaceColorization(in_size=model['in_size'], out_size=model['out_size'], model=model['name'], channel_multiplier=2)
 
     files = sorted(glob.glob(os.path.join(indir, '*.*g')))
     for n, file in enumerate(files[:]):

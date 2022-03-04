@@ -63,7 +63,7 @@ cd GPEN
 
 - Restore face images:
 ```bash
-python face_enhancement.py --model GPEN-BFR-512 --size 512 --channel_multiplier 2 --narrow 1 --use_sr --use_cuda --indir examples/imgs --outdir examples/outs-BFR
+python face_enhancement.py --model GPEN-BFR-512 --in_size 512 --out_size 512 --channel_multiplier 2 --narrow 1 --use_sr --use_cuda --indir examples/imgs --outdir examples/outs-BFR
 ```
 
 - Colorize faces:

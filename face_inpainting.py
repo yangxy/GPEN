@@ -64,8 +64,8 @@ def brush_stroke_mask(img, color=(255,255,255)):
     return mask
 
 class FaceInpainting(object):
-    def __init__(self, base_dir='./', size=1024, model=None, channel_multiplier=2):
-        self.facegan = FaceGAN(base_dir, size, model, channel_multiplier)
+    def __init__(self, base_dir='./', in_size=1024, out_size=1024, model=None, channel_multiplier=2):
+        self.facegan = FaceGAN(base_dir, in_size, out_size, model, channel_multiplier)
 
     # make sure the face image is well aligned. Please refer to face_enhancement.py
     def process(self, brokenf):
@@ -75,13 +75,13 @@ class FaceInpainting(object):
         return out
 
 if __name__=='__main__':
-    model = {'name':'GPEN-Inpainting-1024', 'size':1024}
+    model = {'name':'GPEN-Inpainting-1024', 'in_size':1024, 'out_size':1024}
     
     indir = 'examples/ffhq-10'
     outdir = 'examples/outs-inpainting'
     os.makedirs(outdir, exist_ok=True)
 
-    faceinpainter = FaceInpainting(size=model['size'], model=model['name'], channel_multiplier=2)
+    faceinpainter = FaceInpainting(in_size=model['in_size'], out_size=model['out_size'], model=model['name'], channel_multiplier=2)
 
     files = sorted(glob.glob(os.path.join(indir, '*.*g')))
     for n, file in enumerate(files[:]):
