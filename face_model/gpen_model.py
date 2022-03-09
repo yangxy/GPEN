@@ -417,7 +417,8 @@ class Generator(nn.Module):
             128: int(128 * channel_multiplier * narrow),
             256: int(64 * channel_multiplier * narrow),
             512: int(32 * channel_multiplier * narrow),
-            1024: int(16 * channel_multiplier * narrow)
+            1024: int(16 * channel_multiplier * narrow),
+            2048: int(8 * channel_multiplier * narrow)
         }
 
         self.input = ConstantInput(self.channels[4])
@@ -647,7 +648,8 @@ class FullGenerator(nn.Module):
             128: int(128 * channel_multiplier * narrow),
             256: int(64 * channel_multiplier * narrow),
             512: int(32 * channel_multiplier * narrow),
-            1024: int(16 * channel_multiplier * narrow)
+            1024: int(16 * channel_multiplier * narrow),
+            2048: int(8 * channel_multiplier * narrow)
         }
 
         self.log_size = int(math.log(size, 2))
@@ -700,7 +702,8 @@ class Discriminator(nn.Module):
             128: int(128 * channel_multiplier * narrow),
             256: int(64 * channel_multiplier * narrow),
             512: int(32 * channel_multiplier * narrow),
-            1024: int(16 * channel_multiplier * narrow)
+            1024: int(16 * channel_multiplier * narrow),
+            2048: int(8 * channel_multiplier * narrow)
         }
 
         convs = [ConvLayer(3, channels[size], 1, device=device)]

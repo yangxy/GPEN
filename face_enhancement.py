@@ -2,13 +2,9 @@
 @paper: GAN Prior Embedded Network for Blind Face Restoration in the Wild (CVPR2021)
 @author: yangxy (yangtao9009@gmail.com)
 '''
-import os
 import cv2
-import glob
 import time
-import argparse
 import numpy as np
-from PIL import Image
 import __init_paths
 from face_detect.retinaface_detection import RetinaFaceDetection
 from face_parse.face_parsing import FaceParse
@@ -17,7 +13,7 @@ from sr_model.real_esrnet import RealESRNet
 from align_faces import warp_and_crop_face, get_reference_facial_points
 
 class FaceEnhancement(object):
-    def __init__(self, base_dir='./', in_size=512, out_size=512, model=None, use_sr=True, sr_model=None, channel_multiplier=2, narrow=1, key=None, device='cuda'):
+    def __init__(self, base_dir='./', in_size=512, out_size=None, model=None, use_sr=True, sr_model=None, channel_multiplier=2, narrow=1, key=None, device='cuda'):
         self.facedetector = RetinaFaceDetection(base_dir, device)
         self.facegan = FaceGAN(base_dir, in_size, out_size, model, channel_multiplier, narrow, key, device=device)
         self.srmodel =  RealESRNet(base_dir, sr_model, device=device)
@@ -113,47 +109,4 @@ class FaceEnhancement(object):
 
         return img, orig_faces, enhanced_faces
         
-
-if __name__=='__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='GPEN-BFR-512', help='GPEN model')
-    parser.add_argument('--key', type=str, default=None, help='key of GPEN model')
-    parser.add_argument('--in_size', type=int, default=512, help='in resolution of GPEN')
-    parser.add_argument('--out_size', type=int, default=512, help='out resolution of GPEN')
-    parser.add_argument('--channel_multiplier', type=int, default=2, help='channel multiplier of GPEN')
-    parser.add_argument('--narrow', type=float, default=1, help='channel narrow scale')
-    parser.add_argument('--use_sr', action='store_true', help='use sr or not')
-    parser.add_argument('--use_cuda', action='store_true', help='use cuda or not')
-    parser.add_argument('--sr_model', type=str, default='rrdb_realesrnet_psnr', help='SR model')
-    parser.add_argument('--sr_scale', type=int, default=2, help='SR scale')
-    parser.add_argument('--indir', type=str, default='examples/imgs', help='input folder')
-    parser.add_argument('--outdir', type=str, default='results/outs-BFR', help='output folder')
-    args = parser.parse_args()
-
-    #model = {'name':'GPEN-BFR-512', 'size':512, 'channel_multiplier':2, 'narrow':1}
-    #model = {'name':'GPEN-BFR-256', 'size':256, 'channel_multiplier':1, 'narrow':0.5}
-    
-    os.makedirs(args.outdir, exist_ok=True)
-
-    faceenhancer = FaceEnhancement(in_size=args.in_size, out_size=args.out_size, model=args.model, use_sr=args.use_sr, sr_model=args.sr_model, channel_multiplier=args.channel_multiplier, narrow=args.narrow, key=args.key, device='cuda' if args.use_cuda else 'cpu')
-
-    files = sorted(glob.glob(os.path.join(args.indir, '*.*g')))
-    for n, file in enumerate(files[:]):
-        filename = os.path.basename(file)
-        
-        im = cv2.imread(file, cv2.IMREAD_COLOR) # BGR
-        if not isinstance(im, np.ndarray): print(filename, 'error'); continue
-        #im = cv2.resize(im, (0,0), fx=2, fy=2) # optional
-
-        img, orig_faces, enhanced_faces = faceenhancer.process(im)
-        
-        im = cv2.resize(im, img.shape[:2][::-1])
-        cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+'_COMP.jpg'), np.hstack((im, img)))
-        cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+'_GPEN.jpg'), img)
-        
-        for m, (ef, of) in enumerate(zip(enhanced_faces, orig_faces)):
-            of = cv2.resize(of, ef.shape[:2])
-            cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+'_face%02d'%m+'.jpg'), np.hstack((of, ef)))
-        
-        if n%10==0: print(n, filename)
         

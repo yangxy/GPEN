@@ -13,13 +13,13 @@ from torchvision import transforms, utils
 from gpen_model import FullGenerator, FullGenerator_SR
 
 class FaceGAN(object):
-    def __init__(self, base_dir='./', in_size=512, out_size=512, model=None, channel_multiplier=2, narrow=1, key=None, is_norm=True, device='cuda'):
+    def __init__(self, base_dir='./', in_size=512, out_size=None, model=None, channel_multiplier=2, narrow=1, key=None, is_norm=True, device='cuda'):
         self.mfile = os.path.join(base_dir, 'weights', model+'.pth')
         self.n_mlp = 8
         self.device = device
         self.is_norm = is_norm
         self.in_resolution = in_size
-        self.out_resolution = out_size
+        self.out_resolution = in_size if out_size is None else out_size
         self.key = key
         self.load_model(channel_multiplier, narrow)
 
