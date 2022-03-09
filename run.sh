@@ -10,4 +10,4 @@ python demo.py --task FaceEnhancement --model GPEN-BFR-2048 --in_size 2048 --cha
 #python demo.py --task Segmentation2Face --model GPEN-Seg2face-512 --in_size 512 --use_cuda --indir examples/segs --outdir examples/outs-seg2face
 
 ############## TRAIN ################
-#CUDA_VISIBLE_DEVICES='0,1,' python -m torch.distributed.launch --nproc_per_node=2 --master_port=4321 train_simple.py --size 512 --channel_multiplier 2 --narrow 1 --ckpt ckpt-512 --sample sample-512 --batch 1 --path /home/tyang/Codes/SR/BSRGAN/testsets/nwdn_B6
+#CUDA_VISIBLE_DEVICES='0,1,' python -m torch.distributed.launch --nproc_per_node=2 --master_port=4321 train_simple.py --size 512 --channel_multiplier 2 --narrow 1 --ckpt ckpt-512 --sample sample-512 --batch 1 --path your_path_of_aligned_faces
