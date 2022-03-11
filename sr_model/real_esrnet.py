@@ -54,5 +54,6 @@ class RealESRNet(object):
             output = (output * 255.0).round().astype(np.uint8)
 
             return output
-        except:
+        except Exception as e:
+            print('sr failed:', e)
             return None
