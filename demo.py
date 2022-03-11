@@ -76,7 +76,7 @@ if __name__=='__main__':
     parser.add_argument('--channel_multiplier', type=int, default=2, help='channel multiplier of GPEN')
     parser.add_argument('--narrow', type=float, default=1, help='channel narrow scale')
     parser.add_argument('--use_sr', action='store_true', help='use sr or not')
-    parser.add_argument('--use_cuda', action='store_true', default=True, help='use cuda or not')
+    parser.add_argument('--use_cuda', action='store_true', help='use cuda or not')
     parser.add_argument('--save_face', action='store_true', help='save face or not')
     parser.add_argument('--aligned', action='store_true', help='input are aligned faces or not')
     parser.add_argument('--sr_model', type=str, default='rrdb_realesrnet_psnr', help='SR model')
