@@ -1,7 +1,7 @@
 ############## TEST ################
-#python demo.py --task FaceEnhancement --model GPEN-BFR-512 --in_size 512 --channel_multiplier 2 --narrow 1 --use_sr --use_cuda --save_face --indir examples/imgs --outdir examples/outs-bfr
-#python demo.py --task FaceEnhancement --model GPEN-BFR-256 --in_size 256 --channel_multiplier 1 --narrow 0.5 --use_sr --use_cuda --save_face --indir examples/imgs --outdir examples/outs-bfr
-python demo.py --task FaceEnhancement --model GPEN-BFR-2048 --in_size 2048 --channel_multiplier 2 --narrow 1 --use_sr --use_cuda --save_face --indir examples/selfie --outdir examples/outs-selfie
+python demo.py --task FaceEnhancement --model GPEN-BFR-512 --in_size 512 --channel_multiplier 2 --narrow 1 --use_sr --sr_scale 2 --use_cuda --save_face --indir examples/imgs --outdir examples/outs-bfr
+#python demo.py --task FaceEnhancement --model GPEN-BFR-256 --in_size 256 --channel_multiplier 1 --narrow 0.5 --use_sr --sr_scale 4 --use_cuda --save_face --indir examples/imgs --outdir examples/outs-bfr
+#python demo.py --task FaceEnhancement --model GPEN-BFR-2048 --in_size 2048 --channel_multiplier 2 --narrow 1 --use_sr --sr_scale 2 --use_cuda --save_face --indir examples/selfie --outdir examples/outs-selfie
 
 #python demo.py --task FaceColorization --model GPEN-Colorization-1024 --in_size 1024 --use_cuda --indir examples/grays --outdir examples/outs-colorization
 

@@ -76,10 +76,10 @@ if __name__=='__main__':
     parser.add_argument('--channel_multiplier', type=int, default=2, help='channel multiplier of GPEN')
     parser.add_argument('--narrow', type=float, default=1, help='channel narrow scale')
     parser.add_argument('--use_sr', action='store_true', help='use sr or not')
-    parser.add_argument('--use_cuda', action='store_true', default=True, help='use cuda or not')
+    parser.add_argument('--use_cuda', action='store_true', help='use cuda or not')
     parser.add_argument('--save_face', action='store_true', help='save face or not')
     parser.add_argument('--aligned', action='store_true', help='input are aligned faces or not')
-    parser.add_argument('--sr_model', type=str, default='rrdb_realesrnet_psnr', help='SR model')
+    parser.add_argument('--sr_model', type=str, default='realesrnet', help='SR model')
     parser.add_argument('--sr_scale', type=int, default=2, help='SR scale')
     parser.add_argument('--indir', type=str, default='examples/imgs', help='input folder')
     parser.add_argument('--outdir', type=str, default='results/outs-BFR', help='output folder')
@@ -91,7 +91,7 @@ if __name__=='__main__':
     os.makedirs(args.outdir, exist_ok=True)
 
     if args.task == 'FaceEnhancement': 
-        processer = FaceEnhancement(in_size=args.in_size, model=args.model, use_sr=args.use_sr, sr_model=args.sr_model, channel_multiplier=args.channel_multiplier, narrow=args.narrow, key=args.key, device='cuda' if args.use_cuda else 'cpu')
+        processer = FaceEnhancement(in_size=args.in_size, model=args.model, use_sr=args.use_sr, sr_model=args.sr_model, sr_scale=args.sr_scale, channel_multiplier=args.channel_multiplier, narrow=args.narrow, key=args.key, device='cuda' if args.use_cuda else 'cpu')
     elif args.task == 'FaceColorization':
         processer = FaceColorization(in_size=args.in_size, model=args.model, device='cuda' if args.use_cuda else 'cpu')
     elif args.task == 'FaceInpainting':
