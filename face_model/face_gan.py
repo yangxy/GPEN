@@ -40,6 +40,7 @@ class FaceGAN(object):
 
         with torch.no_grad():
             out, __ = self.model(img_t)
+        del img_t
 
         out = self.tensor2img(out)
 

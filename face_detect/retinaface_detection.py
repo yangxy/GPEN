@@ -76,6 +76,7 @@ class RetinaFaceDetection(object):
         scale = scale.to(self.device)
 
         loc, conf, landms = self.net(img)  # forward pass
+        del img
 
         priorbox = PriorBox(self.cfg, image_size=(im_height, im_width))
         priors = priorbox.forward()
@@ -86,9 +87,9 @@ class RetinaFaceDetection(object):
         boxes = boxes.cpu().numpy()
         scores = conf.squeeze(0).data.cpu().numpy()[:, 1]
         landms = decode_landm(landms.data.squeeze(0), prior_data, self.cfg['variance'])
-        scale1 = torch.Tensor([img.shape[3], img.shape[2], img.shape[3], img.shape[2],
-                               img.shape[3], img.shape[2], img.shape[3], img.shape[2],
-                               img.shape[3], img.shape[2]])
+        scale1 = torch.Tensor([im_width, im_height, im_width, im_height,
+                               im_width, im_height, im_width, im_height,
+                               im_width, im_height])
         scale1 = scale1.to(self.device)
         landms = landms * scale1 / resize
         landms = landms.cpu().numpy()
