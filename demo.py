@@ -84,6 +84,7 @@ if __name__=='__main__':
     parser.add_argument('--tile_size', type=int, default=0, help='tile size for SR to avoid OOM')
     parser.add_argument('--indir', type=str, default='examples/imgs', help='input folder')
     parser.add_argument('--outdir', type=str, default='results/outs-BFR', help='output folder')
+    parser.add_argument('--ext', type=str, default='.jpg', help='extension of output')
     args = parser.parse_args()
 
     #model = {'name':'GPEN-BFR-512', 'size':512, 'channel_multiplier':2, 'narrow':1}
@@ -115,12 +116,12 @@ if __name__=='__main__':
         img_out, orig_faces, enhanced_faces = processer.process(img, aligned=args.aligned)
         
         img = cv2.resize(img, img_out.shape[:2][::-1])
-        cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+'_COMP.jpg'), np.hstack((img, img_out)))
-        cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+'_GPEN.jpg'), img_out)
+        cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+f'_COMP{args.ext}'), np.hstack((img, img_out)))
+        cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+f'_GPEN{args.ext}'), img_out)
         
         if args.save_face:
             for m, (ef, of) in enumerate(zip(enhanced_faces, orig_faces)):
                 of = cv2.resize(of, ef.shape[:2])
-                cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+'_face%02d'%m+'.jpg'), np.hstack((of, ef)))
+                cv2.imwrite(os.path.join(args.outdir, '.'.join(filename.split('.')[:-1])+'_face%02d'%m+args.ext), np.hstack((of, ef)))
         
         if n%10==0: print(n, filename)
