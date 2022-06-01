@@ -13,21 +13,22 @@ from sr_model.real_esrnet import RealESRNet
 from align_faces import warp_and_crop_face, get_reference_facial_points
 
 class FaceEnhancement(object):
-    def __init__(self, base_dir='./', in_size=512, out_size=None, model=None, use_sr=True, sr_model=None, sr_scale=2, tile_size=0, channel_multiplier=2, narrow=1, key=None, device='cuda'):
+    def __init__(self, args, base_dir='./', in_size=512, out_size=None, model=None, use_sr=True, device='cuda'):
         self.facedetector = RetinaFaceDetection(base_dir, device)
-        self.facegan = FaceGAN(base_dir, in_size, out_size, model, channel_multiplier, narrow, key, device=device)
-        self.srmodel =  RealESRNet(base_dir, sr_model, sr_scale, tile_size, device=device)
+        self.facegan = FaceGAN(base_dir, in_size, out_size, model, args.channel_multiplier, args.narrow, args.key, device=device)
+        self.srmodel =  RealESRNet(base_dir, args.sr_model, args.sr_scale, args.tile_size, device=device)
         self.faceparser = FaceParse(base_dir, device=device)
         self.use_sr = use_sr
         self.in_size = in_size
         self.out_size = in_size if out_size is None else out_size
         self.threshold = 0.9
+        self.alpha = args.alpha
 
         # the mask for pasting restored faces back
         self.mask = np.zeros((512, 512), np.float32)
         cv2.rectangle(self.mask, (26, 26), (486, 486), (1, 1, 1), -1, cv2.LINE_AA)
-        self.mask = cv2.GaussianBlur(self.mask, (101, 101), 11)
-        self.mask = cv2.GaussianBlur(self.mask, (101, 101), 11)
+        self.mask = cv2.GaussianBlur(self.mask, (101, 101), 4)
+        self.mask = cv2.GaussianBlur(self.mask, (101, 101), 4)
 
         self.kernel = np.array((
                 [0.0625, 0.125, 0.0625],
@@ -41,11 +42,11 @@ class FaceEnhancement(object):
         self.reference_5pts = get_reference_facial_points(
                 (self.in_size, self.in_size), inner_padding_factor, outer_padding, default_square)
 
-    def mask_postprocess(self, mask, thres=20):
+    def mask_postprocess(self, mask, thres=26):
         mask[:thres, :] = 0; mask[-thres:, :] = 0
         mask[:, :thres] = 0; mask[:, -thres:] = 0
-        mask = cv2.GaussianBlur(mask, (101, 101), 11)
-        mask = cv2.GaussianBlur(mask, (101, 101), 11)
+        mask = cv2.GaussianBlur(mask, (101, 101), 4)
+        mask = cv2.GaussianBlur(mask, (101, 101), 4)
         return mask.astype(np.float32)
 
     def process(self, img, aligned=False):
@@ -92,6 +93,8 @@ class FaceEnhancement(object):
 
             if min(fh, fw)<100: # gaussian filter for small faces
                 ef = cv2.filter2D(ef, -1, self.kernel)
+
+            ef = cv2.addWeighted(ef, self.alpha, of, 1.-self.alpha, 0.0)
             
             if self.in_size!=self.out_size:
                 ef = cv2.resize(ef, (self.in_size, self.in_size))

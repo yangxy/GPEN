@@ -75,6 +75,7 @@ if __name__=='__main__':
     parser.add_argument('--out_size', type=int, default=None, help='out resolution of GPEN')
     parser.add_argument('--channel_multiplier', type=int, default=2, help='channel multiplier of GPEN')
     parser.add_argument('--narrow', type=float, default=1, help='channel narrow scale')
+    parser.add_argument('--alpha', type=float, default=1, help='blending the results')
     parser.add_argument('--use_sr', action='store_true', help='use sr or not')
     parser.add_argument('--use_cuda', action='store_true', help='use cuda or not')
     parser.add_argument('--save_face', action='store_true', help='save face or not')
@@ -93,7 +94,7 @@ if __name__=='__main__':
     os.makedirs(args.outdir, exist_ok=True)
 
     if args.task == 'FaceEnhancement': 
-        processer = FaceEnhancement(in_size=args.in_size, model=args.model, use_sr=args.use_sr, sr_model=args.sr_model, sr_scale=args.sr_scale, tile_size=args.tile_size, channel_multiplier=args.channel_multiplier, narrow=args.narrow, key=args.key, device='cuda' if args.use_cuda else 'cpu')
+        processer = FaceEnhancement(args, in_size=args.in_size, model=args.model, use_sr=args.use_sr, device='cuda' if args.use_cuda else 'cpu')
     elif args.task == 'FaceColorization':
         processer = FaceColorization(in_size=args.in_size, model=args.model, device='cuda' if args.use_cuda else 'cpu')
     elif args.task == 'FaceInpainting':
