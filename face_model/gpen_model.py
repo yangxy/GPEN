@@ -734,7 +734,7 @@ class Discriminator(nn.Module):
         out = self.convs(input)
 
         batch, channel, height, width = out.shape
-        group = min(batch, self.stddev_group)
+        group = batch
         stddev = out.view(
             group, -1, self.stddev_feat, channel // self.stddev_feat, height, width
         )
