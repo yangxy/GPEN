@@ -316,6 +316,7 @@ if __name__ == '__main__':
     parser.add_argument('--pretrain', type=str, default=None)
     parser.add_argument('--sample', type=str, default='sample')
     parser.add_argument('--val_dir', type=str, default='val')
+    parser.add_argument('--start_iter', type=int, default=0)
 
     args = parser.parse_args()
 
@@ -334,8 +335,6 @@ if __name__ == '__main__':
 
     args.latent = 512
     args.n_mlp = 8
-
-    args.start_iter = 0
 
     generator = FullGenerator(
         args.size, args.latent, args.n_mlp, channel_multiplier=args.channel_multiplier, narrow=args.narrow, device=device
@@ -367,7 +366,7 @@ if __name__ == '__main__':
     if args.pretrain is not None:
         print('load model:', args.pretrain)
         
-        ckpt = torch.load(args.pretrain)
+        ckpt = torch.load(args.pretrain, map_location=torch.device('cpu'))
 
         generator.load_state_dict(ckpt['g'])
         discriminator.load_state_dict(ckpt['d'])
@@ -411,4 +410,4 @@ if __name__ == '__main__':
     )
 
     train(args, loader, generator, discriminator, [smooth_l1_loss, id_loss], g_optim, d_optim, g_ema, lpips_func, device)
-   
+
