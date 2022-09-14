@@ -12,6 +12,7 @@ import os
 import cv2
 import glob
 from tqdm import tqdm
+import wandb
 
 import torch
 from torch import nn, autograd, optim
@@ -256,7 +257,9 @@ def train(args, loader, generator, discriminator, losses, g_optim, d_optim, g_em
         real_score_val = loss_reduced['real_score'].mean().item()
         fake_score_val = loss_reduced['fake_score'].mean().item()
         path_length_val = loss_reduced['path_length'].mean().item()
-
+        
+        
+        
         if get_rank() == 0:
             pbar.set_description(
                 (
@@ -264,18 +267,34 @@ def train(args, loader, generator, discriminator, losses, g_optim, d_optim, g_em
                 )
             )
             
+            if args.use_wandb:
+                wandb.log({"d_loss_val":d_loss_val,
+                           "g_loss_val":g_loss_val,
+                           "r1_val":r1_val,
+                           "path_loss_val":path_loss_val,
+                           "real_score_val":real_score_val,
+                           "fake_score_val":fake_score_val,
+                           "path_length_val":path_length_val})
+            
             if i % args.save_freq == 0:
                 with torch.no_grad():
                     g_ema.eval()
                     sample, _ = g_ema(degraded_img)
-                    sample = torch.cat((degraded_img, sample, real_img), 0) 
-                    utils.save_image(
-                        sample,
-                        f'{args.sample}/{str(i).zfill(6)}.png',
-                        nrow=args.batch,
-                        normalize=True,
-                        range=(-1, 1),
-                    )
+                    sample = torch.cat((degraded_img, sample, real_img), 0)
+                    if args.use_wandb:
+                        sample = utils.make_grid(sample, 
+                                        nrow=args.batch,
+                                        normalize=True,
+                                        range=(-1, 1))
+                        wandb.log({"sample_images":wandb.Image(sample, caption=f"{str(i).zfill(6)}")})
+                    else:
+                        utils.save_image(
+                            sample,
+                            f'{args.sample}/{str(i).zfill(6)}.png',
+                            nrow=args.batch,
+                            normalize=True,
+                            range=(-1, 1),
+                        )
 
                 lpips_value = validation(g_ema, lpips_func, args, device)
                 print(f'{i}/{args.iter}: lpips: {lpips_value.cpu().numpy()[0][0][0][0]}')
@@ -291,7 +310,6 @@ def train(args, loader, generator, discriminator, losses, g_optim, d_optim, g_em
                     },
                     f'{args.ckpt}/{str(i).zfill(6)}.pth',
                 )
-
 
 if __name__ == '__main__':
 
@@ -317,7 +335,9 @@ if __name__ == '__main__':
     parser.add_argument('--sample', type=str, default='sample')
     parser.add_argument('--val_dir', type=str, default='val')
     parser.add_argument('--start_iter', type=int, default=0)
-
+    parser.add_argument('--use_wandb', default=False, type=bool, help='Use wandb to track your experiments or not')
+    parser.add_argument('--wandb_project', default='your-project-name', type=str)
+    parser.add_argument('--wandb_entity', default='your-login', type=str)
     args = parser.parse_args()
 
     os.makedirs(args.ckpt, exist_ok=True)
@@ -327,6 +347,29 @@ if __name__ == '__main__':
 
     n_gpu = int(os.environ['WORLD_SIZE']) if 'WORLD_SIZE' in os.environ else 1
     args.distributed = n_gpu > 1
+    
+    if args.local_rank == 0:
+        if args.use_wandb:
+            wandb.init(project=args.wandb_project, entity=args.wandb_entity, settings=wandb.Settings(start_method='fork'))
+
+            config = wandb.config
+            config.path = args.path
+            config.iter = args.iter
+            config.batch = args.batch
+            config.size = args.size
+            config.channel_multiplier = args.channel_multiplier
+            config.r1 = args.r1
+            config.path_regularize = args.path_regularize
+            config.path_batch_shrink = args.path_batch_shrink
+            config.d_reg_every = args.d_reg_every
+            config.g_reg_every = args.g_reg_every
+            config.save_freq = args.save_freq
+            config.lr = args.lr
+            config.local_rank = args.local_rank
+            config.ckpt = args.ckpt
+            config.pretrain = args.pretrain
+            config.sample = args.sample
+            config.val_dir = args.val_dir
 
     if args.distributed:
         torch.cuda.set_device(args.local_rank)
@@ -408,6 +451,7 @@ if __name__ == '__main__':
         sampler=data_sampler(dataset, shuffle=True, distributed=args.distributed),
         drop_last=True,
     )
+
 
     train(args, loader, generator, discriminator, [smooth_l1_loss, id_loss], g_optim, d_optim, g_ema, lpips_func, device)
 
