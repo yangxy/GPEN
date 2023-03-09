@@ -56,6 +56,27 @@ _<sup>2</sup>[Department of Computing, The Hong Kong Polytechnic University](htt
 
 (2021-10-11) The Colab demo for GPEN is available now <a href="https://colab.research.google.com/drive/1fPUsJCpQipp2Z5B5GbEXqpBGsMp-nvjm?usp=sharing"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="google colab logo"></a>.
 
+## Download models from Modelscope
+
+- Install modelscope:
+```bash
+pip install "modelscope[cv]" -f https://modelscope.oss-cn-beijing.aliyuncs.com/releases/repo.html
+```
+
+- Run the following codes:
+```python
+import cv2
+from modelscope.pipelines import pipeline
+from modelscope.utils.constant import Tasks
+from modelscope.outputs import OutputKeys
+
+portrait_enhancement = pipeline(Tasks.image_portrait_enhancement, model='damo/cv_gpen_image-portrait-enhancement-hires')
+result = portrait_enhancement('https://modelscope.oss-cn-beijing.aliyuncs.com/test/images/marilyn_monroe_4.jpg')
+cv2.imwrite('result.png', result[OutputKeys.OUTPUT_IMG])
+```
+
+It will automatically download the GPEN models. You can find the model in the local path ``~/.cache/modelscope/hub/damo``. Please note pytorch_model.pt, pytorch_model-2048.pt are respectively the 1024 and 2048 versions.
+
 ## Usage
 
 ![python](https://img.shields.io/badge/python-v3.7.4-green.svg?style=plastic)
