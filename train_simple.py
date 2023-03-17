@@ -367,7 +367,7 @@ if __name__ == '__main__':
     if args.pretrain is not None:
         print('load model:', args.pretrain)
         
-        ckpt = torch.load(args.pretrain)
+        ckpt = torch.load(args.pretrain, map_location=torch.device("cpu"))
 
         generator.load_state_dict(ckpt['g'])
         discriminator.load_state_dict(ckpt['d'])
@@ -375,6 +375,7 @@ if __name__ == '__main__':
             
         g_optim.load_state_dict(ckpt['g_optim'])
         d_optim.load_state_dict(ckpt['d_optim'])
+        del ckpt
     
     smooth_l1_loss = torch.nn.SmoothL1Loss().to(device)
     id_loss = IDLoss(args.base_dir, device, ckpt_dict=None)
