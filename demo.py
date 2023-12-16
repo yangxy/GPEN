@@ -78,6 +78,7 @@ if __name__=='__main__':
     parser.add_argument('--alpha', type=float, default=1, help='blending the results')
     parser.add_argument('--use_sr', action='store_true', help='use sr or not')
     parser.add_argument('--use_cuda', action='store_true', help='use cuda or not')
+    parser.add_argument('--use_mps', action='store_true', help='use Apple Silicon or not')
     parser.add_argument('--save_face', action='store_true', help='save face or not')
     parser.add_argument('--aligned', action='store_true', help='input are aligned faces or not')
     parser.add_argument('--sr_model', type=str, default='realesrnet', help='SR model')
@@ -93,14 +94,21 @@ if __name__=='__main__':
     
     os.makedirs(args.outdir, exist_ok=True)
 
+    if args.use_cuda:
+        device = 'cuda'
+    elif args.use_mps:
+        device = 'mps'
+    else:
+        device = 'cpu'
+
     if args.task == 'FaceEnhancement': 
-        processer = FaceEnhancement(args, in_size=args.in_size, model=args.model, use_sr=args.use_sr, device='cuda' if args.use_cuda else 'cpu')
+        processer = FaceEnhancement(args, in_size=args.in_size, model=args.model, use_sr=args.use_sr, device=device)
     elif args.task == 'FaceColorization':
-        processer = FaceColorization(in_size=args.in_size, model=args.model, device='cuda' if args.use_cuda else 'cpu')
+        processer = FaceColorization(in_size=args.in_size, model=args.model, device=device)
     elif args.task == 'FaceInpainting':
-        processer = FaceInpainting(in_size=args.in_size, model=args.model, device='cuda' if args.use_cuda else 'cpu')
+        processer = FaceInpainting(in_size=args.in_size, model=args.model, device=device)
     elif args.task == 'Segmentation2Face':
-        processer = Segmentation2Face(in_size=args.in_size, model=args.model, is_norm=False, device='cuda' if args.use_cuda else 'cpu')
+        processer = Segmentation2Face(in_size=args.in_size, model=args.model, is_norm=False, device=device)
 
 
     files = sorted(glob.glob(os.path.join(args.indir, '*.*g')))
