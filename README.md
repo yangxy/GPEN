@@ -135,9 +135,6 @@ If our work is useful for your research, please consider citing:
 	    booktitle={IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
 	    year={2021}
     }
-    
-## License
-© Alibaba, 2021. For academic and non-commercial use only.
 
 ## Acknowledgments
 We borrow some codes from [Pytorch_Retinaface](https://github.com/biubug6/Pytorch_Retinaface), [stylegan2-pytorch](https://github.com/rosinality/stylegan2-pytorch), [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN), and [GFPGAN](https://github.com/TencentARC/GFPGAN).
